@@ -95,6 +95,31 @@ class DbalActivityIdRepositoryTest extends ContainerTestCase
         );
     }
 
+    public function testHasImportedFromStravaApi(): void
+    {
+        $this->assertFalse($this->activityIdRepository->hasImportedFromStravaApi());
+
+        $this->activityRepository->add(ActivityWithRawData::fromState(
+            ActivityBuilder::fromDefaults()
+                ->withActivityId(ActivityId::fromUnprefixed(1))
+                ->withImportSource(ImportSource::FIT_FILE)
+                ->build(),
+            ['raw' => 'data']
+        ));
+
+        $this->assertFalse($this->activityIdRepository->hasImportedFromStravaApi());
+
+        $this->activityRepository->add(ActivityWithRawData::fromState(
+            ActivityBuilder::fromDefaults()
+                ->withActivityId(ActivityId::fromUnprefixed(2))
+                ->withImportSource(ImportSource::STRAVA_API)
+                ->build(),
+            ['raw' => 'data']
+        ));
+
+        $this->assertTrue($this->activityIdRepository->hasImportedFromStravaApi());
+    }
+
     public function testFindAllWithoutStravaGear(): void
     {
         $this->getContainer()->get(GearRepository::class)->add(

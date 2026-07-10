@@ -54,6 +54,18 @@ final readonly class DbalActivityIdRepository implements ActivityIdRepository
         ));
     }
 
+    public function hasImportedFromStravaApi(): bool
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('1')
+            ->from('Activity')
+            ->andWhere('importSource = :importSource')
+            ->setParameter('importSource', ImportSource::STRAVA_API->value)
+            ->setMaxResults(1);
+
+        return (bool) $queryBuilder->executeQuery()->fetchOne();
+    }
+
     public function findAllWithoutStravaGear(): ActivityIds
     {
         $queryBuilder = $this->connection->createQueryBuilder();

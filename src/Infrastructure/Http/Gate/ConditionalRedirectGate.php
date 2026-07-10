@@ -27,6 +27,7 @@ abstract class ConditionalRedirectGate implements Gate
 
         $path = $request->getPathInfo();
         foreach ([...$this->allowedPaths(), $this->redirectTo()] as $allowed) {
+            // An allowed path (or the redirect target itself) is always let through,
             if ($this->matches($path, $allowed)) {
                 return null;
             }
