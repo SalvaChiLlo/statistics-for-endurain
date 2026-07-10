@@ -21,7 +21,7 @@ final readonly class ApiRequestHandler
     ) {
     }
 
-    #[Route(path: '/api/{path}', requirements: ['path' => '[a-zA-Z0-9_\-/.]+'], methods: ['GET'], priority: 2)]
+    #[Route(path: '/api/{path}', name: 'api', requirements: ['path' => '[a-zA-Z0-9_\-/.]+'], methods: ['GET'], priority: 2)]
     public function handle(string $path): Response
     {
         try {

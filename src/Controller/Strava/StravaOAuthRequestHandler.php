@@ -34,7 +34,7 @@ final readonly class StravaOAuthRequestHandler
     ) {
     }
 
-    #[Route(path: '/strava-oauth', methods: ['GET'], priority: 2)]
+    #[Route(path: '/strava-oauth', name: 'strava_oauth', methods: ['GET'], priority: 2)]
     public function handle(Request $request): Response
     {
         try {

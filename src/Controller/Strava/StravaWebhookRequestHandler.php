@@ -27,7 +27,7 @@ final readonly class StravaWebhookRequestHandler
     ) {
     }
 
-    #[Route(path: self::STRAVA_WEBHOOKS_ENDPOINT, methods: ['GET'], priority: 2)]
+    #[Route(path: self::STRAVA_WEBHOOKS_ENDPOINT, name: 'strava_webhook_challenge', methods: ['GET'], priority: 2)]
     public function handleValidation(Request $request): JsonResponse
     {
         $webhookConfig = $this->settingsRepository->import()->getWebhookConfig();
@@ -60,7 +60,7 @@ final readonly class StravaWebhookRequestHandler
         return new JsonResponse(['hub.challenge' => $challenge], Response::HTTP_OK);
     }
 
-    #[Route(path: self::STRAVA_WEBHOOKS_ENDPOINT, methods: ['POST'], priority: 2)]
+    #[Route(path: self::STRAVA_WEBHOOKS_ENDPOINT, name: 'strava_webhook', methods: ['POST'], priority: 2)]
     public function handleEvent(Request $request): Response
     {
         if (!$this->settingsRepository->import()->getWebhookConfig()->isEnabled()) {

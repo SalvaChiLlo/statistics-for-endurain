@@ -44,7 +44,7 @@ final readonly class AIChatRequestHandler
     ) {
     }
 
-    #[Route(path: '/ai/chat', methods: ['GET'], priority: 2)]
+    #[Route(path: '/ai/chat', name: 'ai_chat', methods: ['GET'], priority: 2)]
     public function handle(): Response
     {
         if (!$this->buildHtmlStorage->fileExists('index.html')) {
@@ -70,7 +70,7 @@ final readonly class AIChatRequestHandler
         ]), Response::HTTP_OK);
     }
 
-    #[Route(path: '/chat/clear', methods: ['POST'], priority: 2)]
+    #[Route(path: '/chat/clear', name: 'ai_chat_clear', methods: ['POST'], priority: 2)]
     public function clearChat(): Response
     {
         if (!$this->settingsRepository->integrations()->isAIIntegrationWithUIEnabled()) {
@@ -82,7 +82,7 @@ final readonly class AIChatRequestHandler
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
 
-    #[Route('/chat/sse', methods: ['GET'], priority: 2)]
+    #[Route('/chat/sse', name: 'ai_chat_sse', methods: ['GET'], priority: 2)]
     public function chatSse(Request $request): Response
     {
         if (!$this->settingsRepository->integrations()->isAIIntegrationWithUIEnabled()) {

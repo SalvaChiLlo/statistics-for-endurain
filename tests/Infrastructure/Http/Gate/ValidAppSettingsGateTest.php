@@ -6,16 +6,18 @@ use App\Domain\Settings\AthleteHasNotBeenConfigured;
 use App\Domain\Settings\GeneralSettings;
 use App\Domain\Settings\SettingsRepository;
 use App\Infrastructure\Http\Gate\ValidAppSettingsGate;
+use App\Tests\ContainerTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-class ValidAppSettingsGateTest extends TestCase
+class ValidAppSettingsGateTest extends ContainerTestCase
 {
     private SettingsRepository&MockObject $settingsRepository;
+    private UrlGeneratorInterface $urlGenerator;
 
     public function testItPassesThroughWhenTheAthleteHasBeenConfigured(): void
     {
@@ -65,12 +67,15 @@ class ValidAppSettingsGateTest extends TestCase
 
     private function gate(): ValidAppSettingsGate
     {
-        return new ValidAppSettingsGate($this->settingsRepository);
+        return new ValidAppSettingsGate($this->urlGenerator, $this->settingsRepository);
     }
 
     #[\Override]
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->settingsRepository = $this->createMock(SettingsRepository::class);
+        $this->urlGenerator = $this->getContainer()->get(UrlGeneratorInterface::class);
     }
 }

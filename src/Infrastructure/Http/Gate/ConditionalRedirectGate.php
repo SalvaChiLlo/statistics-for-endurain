@@ -7,9 +7,15 @@ namespace App\Infrastructure\Http\Gate;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 abstract class ConditionalRedirectGate implements Gate
 {
+    public function __construct(
+        private readonly UrlGeneratorInterface $urlGenerator,
+    ) {
+    }
+
     abstract protected function shouldGuard(): bool;
 
     /**
@@ -17,7 +23,7 @@ abstract class ConditionalRedirectGate implements Gate
      */
     abstract protected function allowedPaths(): array;
 
-    abstract protected function redirectTo(): string;
+    abstract protected function redirectToRouteName(): string;
 
     final public function handle(Request $request): ?Response
     {
@@ -25,15 +31,16 @@ abstract class ConditionalRedirectGate implements Gate
             return null;
         }
 
+        $target = $this->urlGenerator->generate($this->redirectToRouteName());
+
         $path = $request->getPathInfo();
-        foreach ([...$this->allowedPaths(), $this->redirectTo()] as $allowed) {
-            // An allowed path (or the redirect target itself) is always let through,
+        foreach ([...$this->allowedPaths(), $target] as $allowed) {
             if ($this->matches($path, $allowed)) {
                 return null;
             }
         }
 
-        return new RedirectResponse($this->redirectTo(), Response::HTTP_FOUND);
+        return new RedirectResponse($target, Response::HTTP_FOUND);
     }
 
     private function matches(string $path, string $allowed): bool

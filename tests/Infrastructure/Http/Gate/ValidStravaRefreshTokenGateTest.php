@@ -7,16 +7,18 @@ use App\Domain\Import\ImportMode;
 use App\Domain\Strava\InvalidStravaAccessToken;
 use App\Domain\Strava\Strava;
 use App\Infrastructure\Http\Gate\ValidStravaRefreshTokenGate;
+use App\Tests\ContainerTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-class ValidStravaRefreshTokenGateTest extends TestCase
+class ValidStravaRefreshTokenGateTest extends ContainerTestCase
 {
     private Strava&MockObject $strava;
-    private ActivityIdRepository $activityIdRepository;
+    private ActivityIdRepository&MockObject $activityIdRepository;
+    private UrlGeneratorInterface $urlGenerator;
 
     public function testItPassesThroughWhenNotUsingStravaApiImportMode(): void
     {
@@ -95,6 +97,7 @@ class ValidStravaRefreshTokenGateTest extends TestCase
     private function gate(ImportMode $importMode): ValidStravaRefreshTokenGate
     {
         return new ValidStravaRefreshTokenGate(
+            $this->urlGenerator,
             $importMode,
             $this->strava,
             $this->activityIdRepository,
@@ -104,7 +107,10 @@ class ValidStravaRefreshTokenGateTest extends TestCase
     #[\Override]
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->strava = $this->createMock(Strava::class);
         $this->activityIdRepository = $this->createMock(ActivityIdRepository::class);
+        $this->urlGenerator = $this->getContainer()->get(UrlGeneratorInterface::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Tests\Infrastructure\Http\Gate;
 
 use App\Infrastructure\Http\Gate\AdminAllowedIpGate;
+use App\Infrastructure\Http\Gate\AppHasBeenBuiltGate;
 use App\Infrastructure\Http\Gate\Gate;
 use App\Infrastructure\Http\Gate\GateRequestListener;
 use App\Infrastructure\Http\Gate\ValidAppSettingsGate;
@@ -22,6 +23,7 @@ class GateRegistrationTest extends ContainerTestCase
             AdminAllowedIpGate::class,          // priority 100
             ValidStravaRefreshTokenGate::class, // priority 90
             ValidAppSettingsGate::class,        // priority 80
+            AppHasBeenBuiltGate::class,         // priority 70
         ], $gateClasses);
     }
 

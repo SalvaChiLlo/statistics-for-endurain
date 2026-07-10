@@ -5,7 +5,7 @@ namespace App\Tests\Controller;
 use App\Controller\AppRequestHandler;
 use App\Tests\ContainerTestCase;
 use Spatie\Snapshots\MatchesSnapshots;
-use Twig\Environment;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class AppRequestHandlerTest extends ContainerTestCase
 {
@@ -22,9 +22,11 @@ class AppRequestHandlerTest extends ContainerTestCase
         $this->assertMatchesHtmlSnapshot($this->appRequestHandler->handle()->getContent());
     }
 
-    public function testHandleWhenNoBuild(): void
+    public function testHandleThrowsWhenTheAppHasNotBeenBuilt(): void
     {
-        $this->assertMatchesHtmlSnapshot($this->appRequestHandler->handle()->getContent());
+        $this->expectExceptionObject(new NotFoundHttpException('Not found'));
+
+        $this->appRequestHandler->handle();
     }
 
     #[\Override]
@@ -32,7 +34,6 @@ class AppRequestHandlerTest extends ContainerTestCase
     {
         $this->appRequestHandler = new AppRequestHandler(
             $this->getContainer()->get('build_html.storage'),
-            $this->getContainer()->get(Environment::class),
         );
     }
 }

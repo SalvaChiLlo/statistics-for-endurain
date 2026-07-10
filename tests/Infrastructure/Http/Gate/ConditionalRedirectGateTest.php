@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class ConditionalRedirectGateTest extends TestCase
 {
@@ -58,9 +59,15 @@ class ConditionalRedirectGateTest extends TestCase
 
     private function gate(bool $shouldGuard): ConditionalRedirectGate
     {
-        return new class($shouldGuard) extends ConditionalRedirectGate {
-            public function __construct(private readonly bool $shouldGuard)
+        // The route name 'gate_target' resolves to '/gate-target'; the base class logic is
+        // what's under test here, so the router is stubbed.
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturn('/gate-target');
+
+        return new class($urlGenerator, $shouldGuard) extends ConditionalRedirectGate {
+            public function __construct(UrlGeneratorInterface $urlGenerator, private readonly bool $shouldGuard)
             {
+                parent::__construct($urlGenerator);
             }
 
             protected function shouldGuard(): bool
@@ -73,9 +80,9 @@ class ConditionalRedirectGateTest extends TestCase
                 return ['/allowed'];
             }
 
-            protected function redirectTo(): string
+            protected function redirectToRouteName(): string
             {
-                return '/gate-target';
+                return 'gate_target';
             }
         };
     }
