@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Daemon;
 
-use App\Console\Daemon\ProcessStravaWebhooksConsoleCommand;
 use App\Console\Daemon\RunFileImportAndBuildAppConsoleCommand;
 use App\Console\Daemon\RunStravaImportAndBuildAppConsoleCommand;
 use App\Domain\Import\ImportMode;
@@ -129,27 +128,6 @@ final class SystemDaemon implements Daemon
                             RunStravaImportAndBuildAppConsoleCommand::BUILD_OPTION,
                             RunStravaImportAndBuildAppConsoleCommand::IF_REQUIRED_OPTION,
                         )
-                    );
-                    $process->start();
-
-                    return resolve(true);
-                }
-            );
-        }
-
-        $webhookConfig = $this->settingsRepository->import()->getWebhookConfig();
-        if ($this->importMode->isStravaApi() && $webhookConfig->isEnabled()) {
-            $extraConfiguredCronActionsOutput[] = sprintf('<info> - processStravaWebhooks: %s</info>', $webhookConfig->getCronExpression());
-            $actions[] = new Action(
-                key: 'processStravaWebhooks',
-                mutexTtl: 60,
-                expression: (string) $webhookConfig->getCronExpression(),
-                performer: function (): PromiseInterface {
-                    $process = new CronProcess(
-                        cronActionId: 'processStravaWebhooks',
-                        clock: $this->clock,
-                        output: $this->getConsoleOutput(),
-                        command: sprintf('bin/console %s', ProcessStravaWebhooksConsoleCommand::NAME)
                     );
                     $process->start();
 
