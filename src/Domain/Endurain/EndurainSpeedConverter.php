@@ -24,7 +24,7 @@ use App\Infrastructure\ValueObject\Measurement\Velocity\SecPerKm;
  * are bounded to the same, already-accepted precision loss: any magnitude
  * change smaller than 0.0005 in the target unit rounds to zero.
  */
-final class EnduranSpeedConverter
+final class EndurainSpeedConverter
 {
     /**
      * Converts Endurain's `average_speed`/`max_speed` (meters/second) to

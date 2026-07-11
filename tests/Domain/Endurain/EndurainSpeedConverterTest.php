@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Domain\Endurain;
 
-use App\Domain\Endurain\EnduranSpeedConverter;
+use App\Domain\Endurain\EndurainSpeedConverter;
 use App\Infrastructure\ValueObject\Measurement\Velocity\KmPerHour;
 use App\Infrastructure\ValueObject\Measurement\Velocity\SecPerKm;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
-class EnduranSpeedConverterTest extends TestCase
+class EndurainSpeedConverterTest extends TestCase
 {
     #[TestWith(data: [4.656, 16.762], name: 'confirmed real payload: 18.7km ride in 4024s')]
     #[TestWith(data: [1.0, 3.6], name: 'exactly 1 m/s')]
@@ -19,7 +19,7 @@ class EnduranSpeedConverterTest extends TestCase
     {
         $this->assertEquals(
             KmPerHour::from($expectedKmPerHour),
-            EnduranSpeedConverter::toKmPerHour($metersPerSecond),
+            EndurainSpeedConverter::toKmPerHour($metersPerSecond),
         );
     }
 
@@ -27,7 +27,7 @@ class EnduranSpeedConverterTest extends TestCase
     {
         $this->assertEquals(
             KmPerHour::zero(),
-            EnduranSpeedConverter::toKmPerHour(0.0),
+            EndurainSpeedConverter::toKmPerHour(0.0),
         );
     }
 
@@ -38,7 +38,7 @@ class EnduranSpeedConverterTest extends TestCase
         // This is a deliberate, bounded precision loss, not a bug.
         $this->assertEquals(
             KmPerHour::zero(),
-            EnduranSpeedConverter::toKmPerHour(0.0000001),
+            EndurainSpeedConverter::toKmPerHour(0.0000001),
         );
     }
 
@@ -50,7 +50,7 @@ class EnduranSpeedConverterTest extends TestCase
         // to the 3-decimal rounding the VO applies.
         $this->assertEquals(
             KmPerHour::from(3_600_000.0),
-            EnduranSpeedConverter::toKmPerHour(1_000_000.0),
+            EndurainSpeedConverter::toKmPerHour(1_000_000.0),
         );
     }
 
@@ -58,14 +58,14 @@ class EnduranSpeedConverterTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        EnduranSpeedConverter::toKmPerHour(NAN);
+        EndurainSpeedConverter::toKmPerHour(NAN);
     }
 
     public function testToKmPerHourRejectsNegativeInput(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        EnduranSpeedConverter::toKmPerHour(-1.0);
+        EndurainSpeedConverter::toKmPerHour(-1.0);
     }
 
     #[TestWith(data: [0.2147712905, 214.771], name: 'confirmed real payload pace')]
@@ -74,7 +74,7 @@ class EnduranSpeedConverterTest extends TestCase
     {
         $this->assertEquals(
             SecPerKm::from($expectedSecPerKm),
-            EnduranSpeedConverter::toPace($secondsPerMeter),
+            EndurainSpeedConverter::toPace($secondsPerMeter),
         );
     }
 
@@ -82,7 +82,7 @@ class EnduranSpeedConverterTest extends TestCase
     {
         $this->assertEquals(
             SecPerKm::zero(),
-            EnduranSpeedConverter::toPace(0.0),
+            EndurainSpeedConverter::toPace(0.0),
         );
     }
 
@@ -90,7 +90,7 @@ class EnduranSpeedConverterTest extends TestCase
     {
         $this->assertEquals(
             SecPerKm::zero(),
-            EnduranSpeedConverter::toPace(0.0000001),
+            EndurainSpeedConverter::toPace(0.0000001),
         );
     }
 
@@ -98,7 +98,7 @@ class EnduranSpeedConverterTest extends TestCase
     {
         $this->assertEquals(
             SecPerKm::from(1_000_000_000.0),
-            EnduranSpeedConverter::toPace(1_000_000.0),
+            EndurainSpeedConverter::toPace(1_000_000.0),
         );
     }
 
@@ -106,13 +106,13 @@ class EnduranSpeedConverterTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        EnduranSpeedConverter::toPace(INF);
+        EndurainSpeedConverter::toPace(INF);
     }
 
     public function testToPaceRejectsNegativeInput(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        EnduranSpeedConverter::toPace(-0.1);
+        EndurainSpeedConverter::toPace(-0.1);
     }
 }
