@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Import\EndurainImport\ImportEndurainActivity;
 
+use App\Application\Import\EndurainImport\ImportEndurainGear\ImportEndurainGear;
 use App\Domain\Activity\Activity;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
@@ -11,6 +12,7 @@ use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Endurain\Endurain;
 use App\Domain\Endurain\Stream\EndurainParsedStreams;
 use App\Domain\Endurain\Stream\EndurainStreamParser;
+use App\Infrastructure\CQRS\Command\Bus\CommandBus;
 use App\Infrastructure\CQRS\Command\Command;
 use App\Infrastructure\CQRS\Command\CommandHandler;
 use App\Infrastructure\Time\Clock\Clock;
@@ -35,6 +37,7 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
         private ActivityRepository $activityRepository,
         private ActivityStreamRepository $activityStreamRepository,
         private EndurainStreamParser $endurainStreamParser,
+        private CommandBus $commandBus,
         private Clock $clock,
     ) {
     }
@@ -45,6 +48,19 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
 
         $rawEndurainData = $this->endurain->getActivity($command->getEndurainActivityId());
         $activity = Activity::createFromRawEndurainData($rawEndurainData);
+
+        // The gear referenced by this activity (if any) is imported inline,
+        // on-demand, rather than as a separate batch pass: Endurain has no
+        // batch daemon yet (only this single-activity tracer bullet, #12),
+        // so there is no separate pipeline step to run gear import ahead of
+        // activity import like Strava's ImportGear does. See
+        // ImportEndurainGearCommandHandler for the full rationale.
+        if (!is_null($rawEndurainData['gear_id'] ?? null)) {
+            $this->commandBus->dispatch(new ImportEndurainGear(
+                output: $command->getOutput(),
+                endurainGearId: (int) $rawEndurainData['gear_id'],
+            ));
+        }
 
         $parsedStreams = $this->fetchParsedStreams($command->getEndurainActivityId(), $activity);
         if (null !== $parsedStreams?->getPolyline()) {

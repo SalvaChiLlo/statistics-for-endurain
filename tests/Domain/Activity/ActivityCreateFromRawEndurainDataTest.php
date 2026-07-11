@@ -7,6 +7,7 @@ use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\ImportSource;
 use App\Domain\Activity\SportType\SportType;
 use App\Domain\Activity\WorldType;
+use App\Domain\Gear\GearId;
 use App\Infrastructure\ValueObject\Measurement\Velocity\KmPerHour;
 use PHPUnit\Framework\TestCase;
 
@@ -65,6 +66,26 @@ class ActivityCreateFromRawEndurainDataTest extends TestCase
         ]);
 
         $this->assertEquals('Garmin Edge 1040', $activity->getDeviceName());
+    }
+
+    public function testCreateFromRawEndurainDataWithNullGearIdHasNoGear(): void
+    {
+        $activity = Activity::createFromRawEndurainData([
+            ...$this->buildRawEndurainActivity(),
+            'gear_id' => null,
+        ]);
+
+        $this->assertNull($activity->getGearId());
+    }
+
+    public function testCreateFromRawEndurainDataWithGearIdBuildsAPrefixedGearId(): void
+    {
+        $activity = Activity::createFromRawEndurainData([
+            ...$this->buildRawEndurainActivity(),
+            'gear_id' => 42,
+        ]);
+
+        $this->assertEquals(GearId::fromUnprefixed('endurain-42'), $activity->getGearId());
     }
 
     /**
