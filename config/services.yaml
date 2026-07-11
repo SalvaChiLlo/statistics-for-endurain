@@ -12,6 +12,9 @@ parameters:
     env(STRAVA_CLIENT_ID): 'replace-me'
     env(STRAVA_CLIENT_SECRET): 'replace-me'
     env(STRAVA_REFRESH_TOKEN): 'replace-me'
+    env(ENDURAIN_URL): 'replace-me'
+    env(ENDURAIN_USERNAME): 'replace-me'
+    env(ENDURAIN_PASSWORD): 'replace-me'
     env(DEMO_MODE_IS_ENABLED): 0
     env(LOCK_DSN): 'flock'
     env(TZ): ''
@@ -101,6 +104,18 @@ services:
     App\Domain\Strava\StravaRefreshToken:
         factory: [ null, 'fromString' ]
         arguments: ['%env(string:STRAVA_REFRESH_TOKEN)%']
+
+    App\Domain\Endurain\EndurainUrl:
+        factory: [ null, 'fromString' ]
+        arguments: ['%env(string:ENDURAIN_URL)%']
+
+    App\Domain\Endurain\EndurainUsername:
+        factory: [ null, 'fromString' ]
+        arguments: ['%env(string:ENDURAIN_USERNAME)%']
+
+    App\Domain\Endurain\EndurainPassword:
+        factory: [ null, 'fromString' ]
+        arguments: ['%env(string:ENDURAIN_PASSWORD)%']
 
     App\Domain\Import\ImportMode:
         public: true
