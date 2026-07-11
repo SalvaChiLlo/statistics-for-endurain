@@ -11,7 +11,7 @@ namespace App\Domain\Endurain;
  * https://raw.githubusercontent.com/endurain-project/endurain/master/frontend/src/features/activities/utils/activityType.ts
  * (fetched 2026-07-11, `master` branch).
  */
-enum EnduranActivityType: int
+enum EndurainActivityType: int
 {
     case RUN = 1;
     case TRAIL_RUN = 2;
