@@ -198,6 +198,23 @@ class Endurain
     }
 
     /**
+     * Fetches every stream type that has data for the given activity.
+     * Endurain returns one array entry per stream type that has data (types
+     * with no data are simply absent from the array, not empty entries).
+     *
+     * @return array<mixed>
+     */
+    public function getAllActivityStreams(int $activityId): array
+    {
+        return Json::decode($this->request('api/v1/activities_streams/activity_id/'.$activityId.'/all', 'GET', [
+            RequestOptions::HEADERS => [
+                'Authorization' => 'Bearer '.$this->getAccessToken(),
+                self::CLIENT_TYPE_HEADER => self::CLIENT_TYPE_VALUE,
+            ],
+        ]));
+    }
+
+    /**
      * @param array<mixed> $decodedResponse
      */
     private function cacheTokens(array $decodedResponse): string
