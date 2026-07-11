@@ -15,6 +15,9 @@ use App\Domain\Activity\ActivityIds;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
 use App\Domain\Endurain\Endurain;
+use App\Domain\Endurain\EndurainPassword;
+use App\Domain\Endurain\EndurainUrl;
+use App\Domain\Endurain\EndurainUsername;
 use App\Domain\Settings\SettingsRepository;
 use App\Infrastructure\CQRS\Command\Bus\CommandBus;
 use App\Infrastructure\Mutex\LockName;
@@ -25,6 +28,11 @@ use App\Tests\Domain\Activity\ActivityBuilder;
 use App\Tests\Infrastructure\CQRS\Command\Bus\SpyCommandBus;
 use App\Tests\Infrastructure\FileSystem\SuccessfulPermissionChecker;
 use App\Tests\Infrastructure\Time\Clock\PausedClock;
+use App\Tests\Infrastructure\Time\Sleep\NullSleep;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
@@ -131,14 +139,34 @@ class RunEndurainImportAndBuildAppConsoleCommandTest extends ConsoleCommandTestC
 
         $firstRun = new CommandTester($command);
         $firstRun->execute(['command' => $command->getName()]);
+        $this->assertSame(Command::SUCCESS, $firstRun->getStatusCode());
+        // SpyCommandBus::getDispatchedCommands() drains its internal buffer, so this
+        // captures only the commands dispatched by the first run.
         $firstDispatched = array_map(static fn (object $c): string => $c::class, $this->commandBus->getDispatchedCommands());
 
         $secondRun = new CommandTester($command);
         $secondRun->execute(['command' => $command->getName()]);
+        $this->assertSame(Command::SUCCESS, $secondRun->getStatusCode());
+        // Isolated to the second run only, for the same reason as above.
         $secondDispatched = array_map(static fn (object $c): string => $c::class, $this->commandBus->getDispatchedCommands());
 
         $this->assertNotContains(ImportEndurainActivity::class, $firstDispatched);
         $this->assertNotContains(ImportEndurainActivity::class, $secondDispatched);
+
+        // The diff being empty must not stop the rest of the pipeline from running on
+        // either invocation: metrics recalculation and a dashboard rebuild still happen
+        // every run, true idempotency here means "no duplicate imports/deletions", not
+        // "nothing happens at all".
+        $this->assertContains(CalculateActivityMetrics::class, $firstDispatched);
+        $this->assertContains(CalculateActivityMetrics::class, $secondDispatched);
+
+        // The mutex must be fully released after each run so a second, unrelated
+        // invocation is never blocked by a stale lock left behind by an idle no-op run.
+        $row = $this->getConnection()->fetchOne(
+            'SELECT `value` FROM KeyValue WHERE `key` = :key',
+            ['key' => 'lock.importDataOrBuildApp']
+        );
+        $this->assertFalse($row);
     }
 
     public function testAbortsAndReleasesMutexWhenAllLocalActivitiesWouldBeMarkedForDeletion(): void
@@ -211,6 +239,88 @@ class RunEndurainImportAndBuildAppConsoleCommandTest extends ConsoleCommandTestC
     }
 
     #[AllowMockObjectsWithoutExpectations]
+    public function testCompletesSuccessfullyWhenGetActivitiesHitsA429MidSyncAndRetriesSucceed(): void
+    {
+        // A real Endurain instance (not the usual mock) backed by a mocked Guzzle client,
+        // so the full sync loop genuinely exercises Endurain::request()'s built-in 429
+        // retry-with-backoff (from #13) rather than merely trusting it works in isolation.
+        $sleep = new NullSleep();
+        $client = $this->createMock(Client::class);
+
+        $matcher = $this->exactly(3);
+        $client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    $this->assertEquals('api/v1/auth/login', $path);
+
+                    return new Response(200, [], Json::encode([
+                        'access_token' => $this->buildFakeJwt(['sub' => 1]),
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                if (2 === $matcher->numberOfInvocations()) {
+                    // The remote is momentarily rate-limiting the activities-list call.
+                    throw new RequestException(message: 'Too Many Requests', request: new Request('GET', $path), response: new Response(429, [], Json::encode(['error' => 'Too Many Requests'])));
+                }
+
+                // Retry succeeds: a single, short page ends pagination immediately.
+                return new Response(200, [], Json::encode([['id' => 1]]));
+            });
+
+        $realEndurain = new Endurain(
+            client: $client,
+            endurainUrl: EndurainUrl::fromString('https://endurain.example.com'),
+            endurainUsername: EndurainUsername::fromString('theUsername'),
+            endurainPassword: EndurainPassword::fromString('thePassword'),
+            logger: new NullLogger(),
+            clock: PausedClock::fromString(self::TODAY),
+            sleep: $sleep,
+        );
+
+        $this->activityIdRepository
+            ->expects($this->atLeastOnce())
+            ->method('findAllImportedFromEndurainApi')
+            ->willReturn(ActivityIds::fromArray([ActivityId::fromUnprefixed('endurain-1')]));
+
+        $this->activityRepository
+            ->expects($this->never())
+            ->method('markActivitiesForDeletion');
+
+        $command = $this->buildCommand(commandBus: $this->commandBus, endurain: $realEndurain);
+
+        $application = new Application();
+        $application->addCommand($command);
+        $commandTester = new CommandTester($application->find(RunEndurainImportAndBuildAppConsoleCommand::NAME));
+        $commandTester->execute(['command' => RunEndurainImportAndBuildAppConsoleCommand::NAME]);
+
+        $this->assertSame(Command::SUCCESS, $commandTester->getStatusCode());
+
+        $dispatchedCommandClasses = array_map(
+            static fn (object $command): string => $command::class,
+            $this->commandBus->getDispatchedCommands()
+        );
+        // No new activity: endurain-1 is already imported locally, so the sync loop
+        // completing successfully after the 429 retry is what's under test here, not
+        // the diffing itself.
+        $this->assertNotContains(ImportEndurainActivity::class, $dispatchedCommandClasses);
+        $this->assertContains(CalculateActivityMetrics::class, $dispatchedCommandClasses);
+
+        // One retry with a 1-second base backoff.
+        $this->assertEquals(1, $sleep->getTotalSleptInSeconds());
+
+        // The mutex must have been released on this successful path too.
+        $row = $this->getConnection()->fetchOne(
+            'SELECT `value` FROM KeyValue WHERE `key` = :key',
+            ['key' => 'lock.importDataOrBuildApp']
+        );
+        $this->assertFalse($row);
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
     public function testPostponesWhenLockIsAlreadyAcquired(): void
     {
         $this->getConnection()->executeStatement(
@@ -274,6 +384,13 @@ class RunEndurainImportAndBuildAppConsoleCommandTest extends ConsoleCommandTestC
             [],
         ));
 
+        // Endurain::$cachedAccessToken and friends are static: reset them so the real
+        // Endurain instance built in testCompletesSuccessfullyWhenGetActivitiesHitsA429MidSyncAndRetriesSucceed()
+        // always starts from a clean slate regardless of test execution order.
+        Endurain::$cachedAccessToken = null;
+        Endurain::$cachedRefreshToken = null;
+        Endurain::$cachedAccessTokenExpiresOn = null;
+
         $this->endurain = $this->createMock(Endurain::class);
         $this->activityRepository = $this->createMock(ActivityRepository::class);
         $this->activityIdRepository = $this->createMock(ActivityIdRepository::class);
@@ -287,10 +404,11 @@ class RunEndurainImportAndBuildAppConsoleCommandTest extends ConsoleCommandTestC
     private function buildCommand(
         CommandBus $commandBus,
         ?LoggerInterface $logger = null,
+        ?Endurain $endurain = null,
     ): RunEndurainImportAndBuildAppConsoleCommand {
         return new RunEndurainImportAndBuildAppConsoleCommand(
             commandBus: $commandBus,
-            endurain: $this->endurain,
+            endurain: $endurain ?? $this->endurain,
             detectEndurainActivityChanges: $this->detectEndurainActivityChanges,
             activityRepository: $this->activityRepository,
             activityIdRepository: $this->activityIdRepository,
@@ -311,5 +429,28 @@ class RunEndurainImportAndBuildAppConsoleCommandTest extends ConsoleCommandTestC
     protected function getConsoleCommand(): Command
     {
         return $this->command;
+    }
+
+    /**
+     * Builds a real-shaped (but fake/test-only) JWT string: three base64url segments
+     * separated by '.', with a JSON payload in the middle segment, mirroring the shape
+     * of the real Endurain access token without needing valid signing. Mirrors the
+     * helper of the same name in EndurainTest, needed here to build a real Endurain
+     * instance whose getCurrentUserId() call succeeds.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function buildFakeJwt(array $payload): string
+    {
+        $header = ['alg' => 'HS256', 'typ' => 'JWT'];
+
+        $encode = fn (string $json): string => rtrim(strtr(base64_encode($json), '+/', '-_'), '=');
+
+        return sprintf(
+            '%s.%s.%s',
+            $encode(Json::encode($header)),
+            $encode(Json::encode($payload)),
+            'fake-signature',
+        );
     }
 }
