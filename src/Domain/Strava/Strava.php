@@ -265,21 +265,6 @@ class Strava
     /**
      * @return array<mixed>
      */
-    public function getActivityPhotos(ActivityId $activityId): array
-    {
-        return Json::decode($this->request('api/v3/activities/'.$activityId->toUnprefixedString().'/photos', 'GET', [
-            RequestOptions::HEADERS => [
-                'Authorization' => 'Bearer '.$this->getAccessToken(),
-            ],
-            RequestOptions::QUERY => [
-                'size' => 5000,
-            ],
-        ]));
-    }
-
-    /**
-     * @return array<mixed>
-     */
     public function getGear(GearId $gearId): array
     {
         return Json::decode($this->request('api/v3/gear/'.$gearId->toUnprefixedString(), 'GET', [

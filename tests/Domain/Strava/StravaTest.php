@@ -557,39 +557,6 @@ class StravaTest extends TestCase
         $this->strava->getAllActivityStreams(ActivityId::fromUnprefixed(3));
     }
 
-    public function testGetAllActivityPhotos(): void
-    {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
-        $matcher = $this->exactly(2);
-        $this->client
-            ->expects($matcher)
-            ->method('request')
-            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
-                if (1 === $matcher->numberOfInvocations()) {
-                    $this->assertEquals('POST', $method);
-                    $this->assertEquals('oauth/token', $path);
-                    $this->assertMatchesJsonSnapshot($options);
-
-                    return new Response(200, [], Json::encode(['access_token' => 'theAccessToken']));
-                }
-
-                $this->assertEquals('GET', $method);
-                $this->assertEquals('api/v3/activities/3/photos', $path);
-                $this->assertMatchesJsonSnapshot($options);
-
-                return new Response(200, [], Json::encode([]));
-            });
-
-        $this->logger
-            ->expects($this->exactly(2))
-            ->method('info');
-
-        $this->strava->getActivityPhotos(ActivityId::fromUnprefixed(3));
-    }
-
     public function testGetGear(): void
     {
         $this->filesystemOperator
