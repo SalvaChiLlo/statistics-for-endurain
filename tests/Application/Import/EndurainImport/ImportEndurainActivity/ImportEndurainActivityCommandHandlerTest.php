@@ -4,6 +4,7 @@ namespace App\Tests\Application\Import\EndurainImport\ImportEndurainActivity;
 
 use App\Application\Import\EndurainImport\ImportEndurainActivity\ImportEndurainActivity;
 use App\Application\Import\EndurainImport\ImportEndurainActivity\ImportEndurainActivityCommandHandler;
+use App\Application\Import\EndurainImport\ImportEndurainGear\ImportEndurainGear;
 use App\Domain\Activity\Activity;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\ActivityRepository;
@@ -13,6 +14,8 @@ use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Endurain\Endurain;
 use App\Domain\Endurain\Stream\EndurainStreamParser;
+use App\Domain\Gear\GearId;
+use App\Infrastructure\CQRS\Command\Bus\CommandBus;
 use App\Tests\Infrastructure\Time\Clock\PausedClock;
 use App\Tests\SpyOutput;
 use GuzzleHttp\Exception\ClientException;
@@ -26,6 +29,7 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
     private MockObject $endurain;
     private MockObject $activityRepository;
     private MockObject $activityStreamRepository;
+    private MockObject $commandBus;
     private ImportEndurainActivityCommandHandler $handler;
 
     public function testHandleAddsNewActivityAndPersistsStreamsAndPolyline(): void
@@ -67,6 +71,10 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
             ->expects($this->never())
             ->method('update');
 
+        $this->commandBus
+            ->expects($this->never())
+            ->method('dispatch');
+
         $this->activityStreamRepository
             ->method('hasOneForActivityAndStreamType')
             ->willReturn(false);
@@ -106,6 +114,10 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->endurain->expects($this->once())->method('getAllActivityStreams')->willReturn($rawStreams);
         $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
 
+        $this->commandBus
+            ->expects($this->never())
+            ->method('dispatch');
+
         $this->activityStreamRepository
             ->expects($this->exactly(2))
             ->method('hasOneForActivityAndStreamType')
@@ -141,6 +153,10 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
             ));
 
         $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
+
+        $this->commandBus
+            ->expects($this->never())
+            ->method('dispatch');
 
         $this->activityStreamRepository
             ->expects($this->never())
@@ -210,6 +226,10 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->activityRepository
             ->expects($this->never())
             ->method('add');
+
+        $this->commandBus
+            ->expects($this->never())
+            ->method('dispatch');
 
         $this->activityStreamRepository
             ->expects($this->exactly(2))
@@ -321,13 +341,79 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->endurain = $this->createMock(Endurain::class);
         $this->activityRepository = $this->createMock(ActivityRepository::class);
         $this->activityStreamRepository = $this->createMock(ActivityStreamRepository::class);
+        $this->commandBus = $this->createMock(CommandBus::class);
 
         $this->handler = new ImportEndurainActivityCommandHandler(
             endurain: $this->endurain,
             activityRepository: $this->activityRepository,
             activityStreamRepository: $this->activityStreamRepository,
             endurainStreamParser: new EndurainStreamParser(),
+            commandBus: $this->commandBus,
             clock: PausedClock::fromString('2026-07-11 12:00:00'),
         );
+    }
+
+    public function testHandleDoesNotDispatchGearImportWhenActivityHasNoGear(): void
+    {
+        $rawData = $this->buildRawEndurainActivity();
+        $rawStreams = $this->buildRawEndurainStreams();
+
+        $this->endurain->expects($this->once())->method('getActivity')->willReturn($rawData);
+        $this->endurain->expects($this->once())->method('getAllActivityStreams')->willReturn($rawStreams);
+        $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
+        $this->activityRepository->expects($this->once())->method('add');
+        $this->activityRepository->expects($this->once())->method('markActivityStreamsAsImported');
+        $this->activityStreamRepository->expects($this->exactly(2))->method('hasOneForActivityAndStreamType')->willReturn(false);
+        $this->activityStreamRepository->expects($this->exactly(2))->method('add');
+
+        $this->commandBus
+            ->expects($this->never())
+            ->method('dispatch');
+
+        $output = new SpyOutput();
+        $this->handler->handle(new ImportEndurainActivity(
+            output: $output,
+            endurainActivityId: 1,
+        ));
+    }
+
+    public function testHandleDispatchesGearImportWhenActivityReferencesGear(): void
+    {
+        $rawData = [
+            ...$this->buildRawEndurainActivity(),
+            'gear_id' => 42,
+        ];
+        $rawStreams = $this->buildRawEndurainStreams();
+
+        $this->endurain->expects($this->once())->method('getActivity')->willReturn($rawData);
+        $this->endurain->expects($this->once())->method('getAllActivityStreams')->willReturn($rawStreams);
+        $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
+        $this->activityRepository->expects($this->once())->method('markActivityStreamsAsImported');
+        $this->activityStreamRepository->expects($this->exactly(2))->method('hasOneForActivityAndStreamType')->willReturn(false);
+        $this->activityStreamRepository->expects($this->exactly(2))->method('add');
+
+        $this->commandBus
+            ->expects($this->once())
+            ->method('dispatch')
+            ->with($this->callback(function (ImportEndurainGear $command): bool {
+                $this->assertEquals(42, $command->getEndurainGearId());
+
+                return true;
+            }));
+
+        $this->activityRepository
+            ->expects($this->once())
+            ->method('add')
+            ->with($this->callback(function (ActivityWithRawData $activityWithRawData): bool {
+                $this->assertEquals(GearId::fromUnprefixed('endurain-42'), $activityWithRawData->getActivity()->getGearId());
+
+                return true;
+            }));
+
+        $output = new SpyOutput();
+        $this->handler->handle(new ImportEndurainActivity(
+            output: $output,
+            endurainActivityId: 1,
+        ));
     }
 }

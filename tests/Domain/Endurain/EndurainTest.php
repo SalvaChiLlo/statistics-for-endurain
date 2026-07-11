@@ -572,6 +572,125 @@ class EndurainTest extends TestCase
         $endurain->getCurrentUserId();
     }
 
+    public function testGetGearsReturnsTheRecordsArrayFromThePaginationWrapper(): void
+    {
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(2);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                $this->assertEquals('GET', $method);
+                $this->assertEquals('api/v1/gears', $path);
+                $this->assertEquals([
+                    'base_uri' => 'https://endurain.example.com',
+                    RequestOptions::HEADERS => [
+                        'Authorization' => 'Bearer theAccessToken',
+                        'X-Client-Type' => 'mobile',
+                    ],
+                ], $options);
+
+                return new Response(200, [], Json::encode([
+                    'total' => 1,
+                    'num_records' => 1,
+                    'page_number' => 1,
+                    'records' => [
+                        ['id' => 42, 'nickname' => 'My Commuter Bike'],
+                    ],
+                ]));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals(
+            [['id' => 42, 'nickname' => 'My Commuter Bike']],
+            $endurain->getGears()
+        );
+    }
+
+    public function testGetGearsReturnsAnEmptyArrayWhenTheUserHasNoGear(): void
+    {
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(2);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                return new Response(200, [], Json::encode([
+                    'total' => 0,
+                    'num_records' => null,
+                    'page_number' => null,
+                    'records' => [],
+                ]));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals([], $endurain->getGears());
+    }
+
+    public function testGetGear(): void
+    {
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(2);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                $this->assertEquals('GET', $method);
+                $this->assertEquals('api/v1/gears/id/42', $path);
+                $this->assertEquals([
+                    'base_uri' => 'https://endurain.example.com',
+                    RequestOptions::HEADERS => [
+                        'Authorization' => 'Bearer theAccessToken',
+                        'X-Client-Type' => 'mobile',
+                    ],
+                ], $options);
+
+                return new Response(200, [], Json::encode(['id' => 42, 'nickname' => 'My Commuter Bike']));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals(
+            ['id' => 42, 'nickname' => 'My Commuter Bike'],
+            $endurain->getGear(42)
+        );
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

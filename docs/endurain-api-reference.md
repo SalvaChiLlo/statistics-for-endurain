@@ -181,6 +181,35 @@ list item (confirmed identical structure via both endpoints).
 - Not exercised with real gear data (test account has none). #5 should
   create a gear item on the test account and re-capture a populated example
   before finalizing the gear import mapping.
+- `GET /api/v1/gears/id/{gear_id}` fetches a single gear item by id (used by
+  #5's on-demand, single-activity-scoped gear import instead of the list
+  endpoint above).
+- Field shape and `gear_type` vocabulary **confirmed against Endurain's
+  source** (`backend/app/gears/gear/models.py` and `schema.py` on
+  `endurain-project/endurain@master`), not against a live populated
+  instance (still an open item — no real gear payload has been captured):
+  ```json
+  {
+    "id": 42,
+    "user_id": 1,
+    "brand": "Canyon",
+    "model": "Grail",
+    "nickname": "My Commuter Bike",
+    "gear_type": 1,
+    "created_at": "2026-01-01T12:00:00",
+    "active": true,
+    "initial_kms": 0.0,
+    "purchase_value": null,
+    "strava_gear_id": null,
+    "garminconnect_gear_id": null
+  }
+  ```
+  `gear_type` vocabulary: `1`=bike, `2`=shoes, `3`=wetsuit, `4`=racquet,
+  `5`=skis, `6`=snowboard, `7`=windsurf, `8`=water sports board. This
+  codebase's `Gear` entity does not model equipment category (only
+  import-provenance via `GearType::IMPORTED`/`CUSTOM`), so `gear_type` is
+  read but intentionally not translated anywhere — see
+  `EndurainGearTranslator`.
 
 ## Streams
 
