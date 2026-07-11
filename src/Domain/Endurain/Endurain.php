@@ -19,6 +19,7 @@ class Endurain
 {
     private const string CLIENT_TYPE_HEADER = 'X-Client-Type';
     private const string CLIENT_TYPE_VALUE = 'mobile';
+    private const int DEFAULT_NUM_RECORDS_PER_PAGE = 200;
 
     public static ?string $cachedAccessToken = null;
     public static ?string $cachedRefreshToken = null;
@@ -110,6 +111,64 @@ class Endurain
         ]);
 
         return $this->cacheTokens(Json::decode($response));
+    }
+
+    /**
+     * Fetches the full activity list for the given user, transparently paginating
+     * through Endurain's path-segment based pagination scheme until a page comes
+     * back empty or shorter than the requested page size.
+     *
+     * @return array<mixed>
+     */
+    public function getActivities(
+        int $userId,
+        ?string $startDate = null,
+        ?string $endDate = null,
+        ?string $sortBy = null,
+        ?string $sortOrder = null,
+        int $numRecordsPerPage = self::DEFAULT_NUM_RECORDS_PER_PAGE,
+    ): array {
+        $activities = [];
+        $pageNumber = 1;
+
+        do {
+            $page = Json::decode($this->request(
+                sprintf('api/v1/activities/user/%d/page_number/%d/num_records/%d', $userId, $pageNumber, $numRecordsPerPage),
+                'GET',
+                [
+                    RequestOptions::HEADERS => [
+                        'Authorization' => 'Bearer '.$this->getAccessToken(),
+                        self::CLIENT_TYPE_HEADER => self::CLIENT_TYPE_VALUE,
+                    ],
+                    RequestOptions::QUERY => array_filter([
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                        'sort_by' => $sortBy,
+                        'sort_order' => $sortOrder,
+                    ], fn (?string $value) => !is_null($value)),
+                ]
+            ));
+
+            $activities = array_merge($activities, $page);
+            ++$pageNumber;
+            // A page shorter than the requested size means there is nothing left to fetch.
+            // This must be a strict count comparison to guarantee the loop terminates.
+        } while (count($page) === $numRecordsPerPage);
+
+        return $activities;
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    public function getActivity(int $activityId): array
+    {
+        return Json::decode($this->request('api/v1/activities/'.$activityId, 'GET', [
+            RequestOptions::HEADERS => [
+                'Authorization' => 'Bearer '.$this->getAccessToken(),
+                self::CLIENT_TYPE_HEADER => self::CLIENT_TYPE_VALUE,
+            ],
+        ]));
     }
 
     /**
