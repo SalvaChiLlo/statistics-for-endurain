@@ -56,3 +56,13 @@ https://github.com/user-attachments/assets/81554f32-31be-4899-afd6-681ce3e7bcb6
 Start off by showing some ❤️ and give this repo a star. 
 When you are done, head over to the [documentation](https://docs.getsfs.app) to get started with the installation and configuration of Statistics for Strava.
 
+## 🔁 Migrating from statistics-for-strava
+
+Already have a statistics-for-strava installation with activities, streams and gear downloaded from Strava? You don't need to re-import anything through the Strava API (which is increasingly paywalled/unreliable) — point the migration command at your old SQLite database file and it copies everything straight into this app's database:
+
+```bash
+docker compose exec app bin/console app:migrate:from-statistics-for-strava /path/to/old/database.db
+```
+
+The command is read-only against the source file (it's never modified) and safe to re-run: activities, streams and gear that were already migrated are skipped rather than duplicated. Migrated activities keep their original `stravaApi` import source, so they stay distinguishable from activities synced from Endurain.
+
