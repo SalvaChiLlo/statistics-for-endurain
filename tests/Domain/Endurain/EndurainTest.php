@@ -238,6 +238,195 @@ class EndurainTest extends TestCase
         $endurain->getAccessToken();
     }
 
+    public function testGetActivitiesLoopsThroughAllPagesAndTerminatesOnShortPage(): void
+    {
+        $this->logger
+            ->expects($this->exactly(4))
+            ->method('info');
+
+        $matcher = $this->exactly(4);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    $this->assertEquals('POST', $method);
+                    $this->assertEquals('api/v1/auth/login', $path);
+
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                $this->assertEquals('GET', $method);
+                $this->assertEquals([
+                    'base_uri' => 'https://endurain.example.com',
+                    RequestOptions::HEADERS => [
+                        'Authorization' => 'Bearer theAccessToken',
+                        'X-Client-Type' => 'mobile',
+                    ],
+                    RequestOptions::QUERY => [],
+                ], $options);
+
+                if (2 === $matcher->numberOfInvocations()) {
+                    $this->assertEquals('api/v1/activities/user/1/page_number/1/num_records/2', $path);
+
+                    return new Response(200, [], Json::encode([
+                        ['id' => 1],
+                        ['id' => 2],
+                    ]));
+                }
+
+                if (3 === $matcher->numberOfInvocations()) {
+                    $this->assertEquals('api/v1/activities/user/1/page_number/2/num_records/2', $path);
+
+                    return new Response(200, [], Json::encode([
+                        ['id' => 3],
+                        ['id' => 4],
+                    ]));
+                }
+
+                // Third page is short (fewer records than requested), the loop must stop here.
+                $this->assertEquals('api/v1/activities/user/1/page_number/3/num_records/2', $path);
+
+                return new Response(200, [], Json::encode([
+                    ['id' => 5],
+                ]));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals([
+            ['id' => 1],
+            ['id' => 2],
+            ['id' => 3],
+            ['id' => 4],
+            ['id' => 5],
+        ], $endurain->getActivities(userId: 1, numRecordsPerPage: 2));
+    }
+
+    public function testGetActivitiesTerminatesImmediatelyOnEmptyFirstPageWithoutInfiniteLooping(): void
+    {
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(2);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                $this->assertEquals('api/v1/activities/user/1/page_number/1/num_records/2', $path);
+
+                return new Response(200, [], Json::encode([]));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals([], $endurain->getActivities(userId: 1, numRecordsPerPage: 2));
+    }
+
+    public function testGetActivitiesPassesOptionalFilters(): void
+    {
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(2);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                $this->assertEquals('api/v1/activities/user/1/page_number/1/num_records/200', $path);
+                $this->assertEquals([
+                    'base_uri' => 'https://endurain.example.com',
+                    RequestOptions::HEADERS => [
+                        'Authorization' => 'Bearer theAccessToken',
+                        'X-Client-Type' => 'mobile',
+                    ],
+                    RequestOptions::QUERY => [
+                        'start_date' => '2025-01-01',
+                        'end_date' => '2025-02-01',
+                        'sort_by' => 'start_time',
+                        'sort_order' => 'desc',
+                    ],
+                ], $options);
+
+                return new Response(200, [], Json::encode([]));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $endurain->getActivities(
+            userId: 1,
+            startDate: '2025-01-01',
+            endDate: '2025-02-01',
+            sortBy: 'start_time',
+            sortOrder: 'desc',
+        );
+    }
+
+    public function testGetActivity(): void
+    {
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(2);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    $this->assertEquals('POST', $method);
+                    $this->assertEquals('api/v1/auth/login', $path);
+
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                $this->assertEquals('GET', $method);
+                $this->assertEquals('api/v1/activities/3', $path);
+                $this->assertEquals([
+                    'base_uri' => 'https://endurain.example.com',
+                    RequestOptions::HEADERS => [
+                        'Authorization' => 'Bearer theAccessToken',
+                        'X-Client-Type' => 'mobile',
+                    ],
+                ], $options);
+
+                return new Response(200, [], Json::encode(['id' => 3, 'name' => 'Workout']));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals(
+            ['id' => 3, 'name' => 'Workout'],
+            $endurain->getActivity(3)
+        );
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
