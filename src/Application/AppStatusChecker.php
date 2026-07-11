@@ -28,6 +28,11 @@ final readonly class AppStatusChecker
         $this->ensureFileSystemIsWritable();
     }
 
+    public function ensureIsReadyForEndurainImport(): void
+    {
+        $this->ensureFileSystemIsWritable();
+    }
+
     public function ensureIsReadyForFileImport(): void
     {
         $this->ensureFileSystemIsWritable();

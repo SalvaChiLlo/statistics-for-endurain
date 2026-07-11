@@ -33,6 +33,20 @@ class AppStatusCheckerTest extends ContainerTestCase
         $this->buildChecker(new UnwritablePermissionChecker())->ensureIsReadyForStravaImport();
     }
 
+    public function testEnsureIsReadyForEndurainImportPasses(): void
+    {
+        $this->expectNotToPerformAssertions();
+
+        $this->buildChecker(new SuccessfulPermissionChecker())->ensureIsReadyForEndurainImport();
+    }
+
+    public function testEnsureIsReadyForEndurainImportThrowsWhenFileSystemIsNotWritable(): void
+    {
+        $this->expectExceptionObject(AppIsNotReady::becauseFileSystemIsNotWritable());
+
+        $this->buildChecker(new UnwritablePermissionChecker())->ensureIsReadyForEndurainImport();
+    }
+
     public function testEnsureIsReadyForFileImportPasses(): void
     {
         $this->expectNotToPerformAssertions();

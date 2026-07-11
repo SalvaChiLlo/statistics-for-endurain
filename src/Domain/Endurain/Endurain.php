@@ -198,6 +198,42 @@ class Endurain
     }
 
     /**
+     * Returns the numeric user id of the currently authenticated Endurain user, decoded
+     * from the 'sub' claim of the (cached) JWT access token. Endurain's API does not expose
+     * a dedicated "get my profile" endpoint yet, but the access token's 'sub' claim is
+     * confirmed to be the numeric user id.
+     */
+    public function getCurrentUserId(): int
+    {
+        $accessToken = $this->getAccessToken();
+
+        $segments = explode('.', $accessToken);
+        if (3 !== count($segments)) {
+            throw new \RuntimeException('Could not decode Endurain access token: unexpected JWT format');
+        }
+
+        $payload = self::base64UrlDecode($segments[1]);
+        $decodedPayload = Json::decode($payload);
+
+        if (empty($decodedPayload['sub'])) {
+            throw new \RuntimeException('Could not decode Endurain access token: missing "sub" claim');
+        }
+
+        return (int) $decodedPayload['sub'];
+    }
+
+    private static function base64UrlDecode(string $data): string
+    {
+        $data = strtr($data, '-_', '+/');
+        $padding = strlen($data) % 4;
+        if (0 !== $padding) {
+            $data .= str_repeat('=', 4 - $padding);
+        }
+
+        return base64_decode($data, true) ?: '';
+    }
+
+    /**
      * Fetches every stream type that has data for the given activity.
      * Endurain returns one array entry per stream type that has data (types
      * with no data are simply absent from the array, not empty entries).
