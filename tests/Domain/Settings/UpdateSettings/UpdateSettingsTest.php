@@ -55,17 +55,6 @@ class UpdateSettingsTest extends TestCase
         ]);
     }
 
-    public function testItThrowsWhenImportDataIsInvalid(): void
-    {
-        $this->expectException(CouldNotDeserializeCommand::class);
-
-        // A webhook that is enabled but has no verify token is invalid.
-        UpdateSettings::fromPayload([
-            'group' => 'import',
-            'data' => ['webhooks' => ['enabled' => true]],
-        ]);
-    }
-
     public function testItThrowsWhenMetricsDataIsInvalid(): void
     {
         $this->expectException(CouldNotDeserializeCommand::class);

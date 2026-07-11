@@ -1,7 +1,6 @@
 {% extends "html/admin/page/template.html.twig" %}
 
 {% block main %}
-    {% set webhooks = settings.webhooks ?? {} %}
     {% set sportTypesToImport = settings.sportTypesToImport ?? [] %}
     {% set activityVisibilitiesToImport = settings.activityVisibilitiesToImport ?? [] %}
     {% set skipRows = [] %}
@@ -119,30 +118,6 @@
                         </button>
                     </div>
                 </template>
-            </div>
-            <div class="mt-6 flex flex-col gap-4 border-t border-gray-200 pt-6">
-                <label class="mt-0!">{{ "Webhooks"|trans({}, 'admin') }}</label>
-                <label class="flex items-center gap-2 mt-0! font-normal cursor-pointer">
-                    <input type="checkbox" name="data[webhooks][enabled]" value="1" {{ (webhooks.enabled ?? false) ? 'checked' : '' }}>
-                    <span>{{ "Enable Strava webhooks"|trans({}, 'admin') }}</span>
-                </label>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label for="webhookVerifyToken">{{ "Verify token"|trans({}, 'admin') }}</label>
-                        <input type="text" id="webhookVerifyToken" name="data[webhooks][verifyToken]" value="{{ webhooks.verifyToken ?? '' }}">
-                        <p class="description">
-                            {{ "Token used to validate incoming Strava webhook requests. Required when webhooks are enabled."|trans({}, 'admin') }}
-                        </p>
-                    </div>
-                    <div>
-                        <label for="webhookCheckInterval">{{ "Check interval (minutes)"|trans({}, 'admin') }}</label>
-                        <input type="number" min="1" max="60" id="webhookCheckInterval"
-                               name="data[webhooks][checkIntervalInMinutes]" value="{{ webhooks.checkIntervalInMinutes ?? 1 }}">
-                        <p class="description">
-                            {{ "How often (in minutes, between 1 and 60) queued webhook events are processed."|trans({}, 'admin') }}
-                        </p>
-                    </div>
-                </div>
             </div>
             <div class="flex justify-end gap-2 border-t border-gray-200 pt-4 mt-6">
                 <button type="submit" data-has-loading-state class="group btn--primary">

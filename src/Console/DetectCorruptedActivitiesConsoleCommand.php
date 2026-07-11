@@ -11,9 +11,6 @@ use App\Domain\Activity\ActivitySummaryRepository;
 use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Activity\Stream\CombinedStream\CombinedActivityStreamRepository;
 use App\Domain\Settings\SettingsRepository;
-use App\Domain\Strava\Webhook\WebhookAspectType;
-use App\Domain\Strava\Webhook\WebhookEvent;
-use App\Domain\Strava\Webhook\WebhookEventRepository;
 use App\Infrastructure\Console\ProvideConsoleIntro;
 use App\Infrastructure\CQRS\Command\Bus\CommandBus;
 use App\Infrastructure\DependencyInjection\Mutex\WithMutex;
@@ -41,7 +38,6 @@ class DetectCorruptedActivitiesConsoleCommand extends Command
         private readonly ActivityRepository $activityRepository,
         private readonly ActivityStreamRepository $activityStreamRepository,
         private readonly CombinedActivityStreamRepository $combinedActivityStreamRepository,
-        private readonly WebhookEventRepository $webhookEventRepository,
         private readonly CommandBus $commandBus,
         private readonly SettingsRepository $settingsRepository,
         private readonly Mutex $mutex,
@@ -117,20 +113,6 @@ class DetectCorruptedActivitiesConsoleCommand extends Command
 
         $this->activityRepository->markActivitiesForDeletion($activityIdsToDelete);
         $this->commandBus->dispatch(new DeleteActivitiesMarkedForDeletion($output));
-
-        if (!$this->settingsRepository->import()->getWebhookConfig()->isEnabled()) {
-            return Command::SUCCESS;
-        }
-
-        foreach ($activityIdsToDelete as $activityId) {
-            // Add activities to the WebhookEvent table so they get imported through the webhook flow.
-            $this->webhookEventRepository->add(WebhookEvent::create(
-                objectId: $activityId->toUnprefixedString(),
-                objectType: 'activity',
-                aspectType: WebhookAspectType::CREATE,
-                payload: [],
-            ));
-        }
 
         return Command::SUCCESS;
     }

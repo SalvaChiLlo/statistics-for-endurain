@@ -24,7 +24,6 @@ class ImportSettingsRequestHandlerTest extends AdminWebTestCase
         $this->assertCount(1, $crawler->filter('form[data-dispatch-command="update-settings"]'));
         $this->assertCount(1, $crawler->filter('form[data-dispatch-command="update-settings"] input[name="group"][value="import"]'));
         $this->assertCount(1, $crawler->filter('input[name="data[numberOfNewActivitiesToProcessPerImport]"]'));
-        $this->assertCount(1, $crawler->filter('input[name="data[webhooks][verifyToken]"]'));
     }
 
     public function testItRendersTheSettingsNavigationWithImportActive(): void
