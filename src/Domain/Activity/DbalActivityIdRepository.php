@@ -54,6 +54,21 @@ final readonly class DbalActivityIdRepository implements ActivityIdRepository
         ));
     }
 
+    public function findAllImportedFromEndurainApi(): ActivityIds
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('activityId')
+            ->from('Activity')
+            ->andWhere('importSource = :importSource')
+            ->setParameter('importSource', ImportSource::ENDURAIN_API->value)
+            ->orderBy('startDateTime', 'DESC');
+
+        return ActivityIds::fromArray(array_map(
+            ActivityId::fromString(...),
+            $queryBuilder->executeQuery()->fetchFirstColumn()
+        ));
+    }
+
     public function findAllWithoutStravaGear(): ActivityIds
     {
         $queryBuilder = $this->connection->createQueryBuilder();

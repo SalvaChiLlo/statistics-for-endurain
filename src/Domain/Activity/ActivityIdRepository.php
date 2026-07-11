@@ -14,6 +14,8 @@ interface ActivityIdRepository
 
     public function findAllImportedFromStravaApi(): ActivityIds;
 
+    public function findAllImportedFromEndurainApi(): ActivityIds;
+
     public function findAllWithoutStravaGear(): ActivityIds;
 
     public function hasForSportTypes(SportTypes $sportTypes): bool;
