@@ -6,11 +6,15 @@ namespace App\Tests\Domain\Endurain;
 
 use App\Domain\Endurain\Endurain;
 use App\Domain\Endurain\EndurainPassword;
+use App\Domain\Endurain\EndurainRateLimitExceeded;
 use App\Domain\Endurain\EndurainUrl;
 use App\Domain\Endurain\EndurainUsername;
 use App\Infrastructure\Serialization\Json;
 use App\Tests\Infrastructure\Time\Clock\PausedClock;
+use App\Tests\Infrastructure\Time\Sleep\NullSleep;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -21,6 +25,7 @@ class EndurainTest extends TestCase
 {
     private MockObject $client;
     private MockObject $logger;
+    private NullSleep $sleep;
 
     public function testLoginObtainsAndCachesAccessAndRefreshTokens(): void
     {
@@ -433,6 +438,7 @@ class EndurainTest extends TestCase
 
         $this->client = $this->createMock(Client::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+        $this->sleep = new NullSleep();
 
         Endurain::$cachedAccessToken = null;
         Endurain::$cachedRefreshToken = null;
@@ -448,6 +454,110 @@ class EndurainTest extends TestCase
             endurainPassword: EndurainPassword::fromString('thePassword'),
             logger: $this->logger,
             clock: PausedClock::fromString($dateTime),
+            sleep: $this->sleep,
         );
+    }
+
+    public function testRequestRetriesAfter429AndSucceedsWithoutSurfacingAnException(): void
+    {
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(3);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                if (2 === $matcher->numberOfInvocations()) {
+                    throw new RequestException(message: 'Too Many Requests', request: new Request('GET', 'api/v1/activities/3'), response: new Response(429, [], Json::encode(['error' => 'Too Many Requests'])));
+                }
+
+                return new Response(200, [], Json::encode(['id' => 3, 'name' => 'Workout']));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals(
+            ['id' => 3, 'name' => 'Workout'],
+            $endurain->getActivity(3)
+        );
+        $this->assertEquals(1, $this->sleep->getTotalSleptInSeconds());
+    }
+
+    public function testRequestRaisesAClearErrorWhenRetriesAreExhaustedOn429(): void
+    {
+        $this->logger
+            ->expects($this->once())
+            ->method('info');
+
+        $this->client
+            // 1 login call + 1 initial attempt + 4 retries.
+            ->expects($this->exactly(6))
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path): Response {
+                if ('api/v1/auth/login' === $path) {
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                throw new RequestException(message: 'Too Many Requests', request: new Request('GET', 'api/v1/activities/3'), response: new Response(429, [], Json::encode(['error' => 'Too Many Requests'])));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->expectExceptionObject(EndurainRateLimitExceeded::afterRetries(4));
+
+        try {
+            $endurain->getActivity(3);
+        } finally {
+            // 4 retries with a doubling backoff starting at 1 second: 1 + 2 + 4 + 8 = 15 seconds.
+            $this->assertEquals(15, $this->sleep->getTotalSleptInSeconds());
+        }
+    }
+
+    public function testRequestDoesNotRetryOnANonRateLimitError(): void
+    {
+        $this->logger
+            ->expects($this->once())
+            ->method('info');
+
+        $this->client
+            // 1 login call + 1 attempt that fails immediately, no retries.
+            ->expects($this->exactly(2))
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path): Response {
+                if ('api/v1/auth/login' === $path) {
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                throw new RequestException(message: 'Internal Server Error', request: new Request('GET', 'api/v1/activities/3'), response: new Response(500, [], Json::encode(['error' => 'Internal Server Error'])));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->expectException(RequestException::class);
+        $this->expectExceptionMessage('{"error":"Internal Server Error"}');
+
+        try {
+            $endurain->getActivity(3);
+        } finally {
+            $this->assertEquals(0, $this->sleep->getTotalSleptInSeconds());
+        }
     }
 }

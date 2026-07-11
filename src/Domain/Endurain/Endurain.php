@@ -7,6 +7,7 @@ namespace App\Domain\Endurain;
 use App\Infrastructure\Logging\Monolog;
 use App\Infrastructure\Serialization\Json;
 use App\Infrastructure\Time\Clock\Clock;
+use App\Infrastructure\Time\Sleep;
 use App\Infrastructure\ValueObject\Time\SerializableDateTime;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -20,6 +21,14 @@ class Endurain
     private const string CLIENT_TYPE_HEADER = 'X-Client-Type';
     private const string CLIENT_TYPE_VALUE = 'mobile';
     private const int DEFAULT_NUM_RECORDS_PER_PAGE = 200;
+    // Endurain has no documented rate-limit header contract (unlike Strava's precise
+    // 15-minute/daily windows), so we fall back to a generic bounded retry with
+    // exponential backoff on HTTP 429. 4 retries (5 attempts total) with a doubling
+    // delay starting at 1 second keeps the worst case (1+2+4+8=15s of sleeping) short
+    // enough to not stall an import run indefinitely, while still giving a transient
+    // rate limit a real chance to clear.
+    private const int MAX_RATE_LIMIT_RETRIES = 4;
+    private const int BASE_RETRY_DELAY_IN_SECONDS = 1;
 
     public static ?string $cachedAccessToken = null;
     public static ?string $cachedRefreshToken = null;
@@ -34,6 +43,7 @@ class Endurain
         private readonly EndurainPassword $endurainPassword,
         private readonly LoggerInterface $logger,
         private readonly Clock $clock,
+        private readonly Sleep $sleep,
     ) {
     }
 
@@ -49,19 +59,35 @@ class Endurain
             'base_uri' => (string) $this->endurainUrl,
         ], $options);
 
-        try {
-            $response = $this->client->request($method, $path, $options);
-        } catch (RequestException $e) {
-            $response = $e->getResponse();
-            if ($error = $response?->getBody()->getContents()) {
-                throw new RequestException(message: $error, request: $e->getRequest(), response: $e->getResponse());
+        $numberOfRetries = 0;
+
+        while (true) {
+            try {
+                $response = $this->client->request($method, $path, $options);
+            } catch (RequestException $e) {
+                $response = $e->getResponse();
+                if (429 !== $response?->getStatusCode()) {
+                    // Rethrow exception if it's not a rate limit error.
+                    if ($error = $response?->getBody()->getContents()) {
+                        throw new RequestException(message: $error, request: $e->getRequest(), response: $e->getResponse());
+                    }
+                    throw $e;
+                }
+
+                if ($numberOfRetries >= self::MAX_RATE_LIMIT_RETRIES) {
+                    throw EndurainRateLimitExceeded::afterRetries($numberOfRetries);
+                }
+
+                $this->sleep->sweetDreams(self::BASE_RETRY_DELAY_IN_SECONDS * 2 ** $numberOfRetries);
+                ++$numberOfRetries;
+
+                continue;
             }
-            throw $e;
+
+            $this->logger->info(new Monolog($method, $path));
+
+            return $response->getBody()->getContents();
         }
-
-        $this->logger->info(new Monolog($method, $path));
-
-        return $response->getBody()->getContents();
     }
 
     /**
