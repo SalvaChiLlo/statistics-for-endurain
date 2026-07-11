@@ -7,7 +7,6 @@ use App\Application\Import\StravaImport\ImportActivities\ImportActivitiesCommand
 use App\Application\Import\StravaImport\ImportActivities\Pipeline\ActivityImportStep;
 use App\Application\Import\StravaImport\ImportActivities\Pipeline\AnalyzeRouteGeography;
 use App\Application\Import\StravaImport\ImportActivities\Pipeline\DetermineActivityWeather;
-use App\Application\Import\StravaImport\ImportActivities\Pipeline\DownloadActivityImages;
 use App\Application\Import\StravaImport\ImportActivities\Pipeline\FetchActivityStreams;
 use App\Application\Import\StravaImport\ImportActivities\Pipeline\InitializeActivity;
 use App\Domain\Activity\ActivityId;
@@ -75,7 +74,7 @@ class ImportActivitiesCommandHandlerTest extends ContainerTestCase
     public function testHandleWithTooManyRequestsWhileFetchingActivities(): void
     {
         $output = new SpyOutput();
-        $this->strava->setMaxNumberOfCallsBeforeTriggering429(12);
+        $this->strava->setMaxNumberOfCallsBeforeTriggering429(8);
 
         $this->getContainer()->get(GearRepository::class)->add(GearBuilder::fromDefaults()
             ->withGearId(GearId::fromString('gear-b12659861'))
@@ -473,7 +472,6 @@ class ImportActivitiesCommandHandlerTest extends ContainerTestCase
             $this->getContainer()->get(FetchActivityStreams::class),
             $this->getContainer()->get(AnalyzeRouteGeography::class),
             $this->getContainer()->get(DetermineActivityWeather::class),
-            $this->getContainer()->get(DownloadActivityImages::class),
         ];
     }
 }
