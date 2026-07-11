@@ -432,6 +432,53 @@ class EndurainTest extends TestCase
         );
     }
 
+    public function testGetAllActivityStreams(): void
+    {
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(2);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    $this->assertEquals('POST', $method);
+                    $this->assertEquals('api/v1/auth/login', $path);
+
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                $this->assertEquals('GET', $method);
+                $this->assertEquals('api/v1/activities_streams/activity_id/3/all', $path);
+                $this->assertEquals([
+                    'base_uri' => 'https://endurain.example.com',
+                    RequestOptions::HEADERS => [
+                        'Authorization' => 'Bearer theAccessToken',
+                        'X-Client-Type' => 'mobile',
+                    ],
+                ], $options);
+
+                return new Response(200, [], Json::encode([
+                    ['id' => 1, 'activity_id' => 3, 'stream_type' => 1, 'stream_waypoints' => [['time' => '2026-06-22T17:11:56', 'hr' => 105]]],
+                ]));
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals(
+            [
+                ['id' => 1, 'activity_id' => 3, 'stream_type' => 1, 'stream_waypoints' => [['time' => '2026-06-22T17:11:56', 'hr' => 105]]],
+            ],
+            $endurain->getAllActivityStreams(3)
+        );
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

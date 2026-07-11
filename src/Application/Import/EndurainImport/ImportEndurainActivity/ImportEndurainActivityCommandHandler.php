@@ -7,12 +7,20 @@ namespace App\Application\Import\EndurainImport\ImportEndurainActivity;
 use App\Domain\Activity\Activity;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
+use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Endurain\Endurain;
+use App\Domain\Endurain\Stream\EndurainParsedStreams;
+use App\Domain\Endurain\Stream\EndurainStreamParser;
 use App\Infrastructure\CQRS\Command\Command;
 use App\Infrastructure\CQRS\Command\CommandHandler;
+use App\Infrastructure\Time\Clock\Clock;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
 
 /**
- * Imports a single Endurain activity by id.
+ * Imports a single Endurain activity by id, including its per-point streams
+ * and a re-encoded polyline (Endurain has no pre-encoded polyline of its
+ * own, only raw lat/lng waypoints stored as stream data).
  *
  * This is intentionally a single-activity operation: no mutex, no import
  * settings, no pipeline steps. It fetches, translates and persists one raw
@@ -25,6 +33,9 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
     public function __construct(
         private Endurain $endurain,
         private ActivityRepository $activityRepository,
+        private ActivityStreamRepository $activityStreamRepository,
+        private EndurainStreamParser $endurainStreamParser,
+        private Clock $clock,
     ) {
     }
 
@@ -34,6 +45,11 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
 
         $rawEndurainData = $this->endurain->getActivity($command->getEndurainActivityId());
         $activity = Activity::createFromRawEndurainData($rawEndurainData);
+
+        $parsedStreams = $this->fetchParsedStreams($command->getEndurainActivityId(), $activity);
+        if (null !== $parsedStreams?->getPolyline()) {
+            $activity = $activity->withPolyline($parsedStreams->getPolyline());
+        }
 
         $isNewActivity = !$this->activityRepository->exists($activity->getId());
         if ($isNewActivity) {
@@ -51,11 +67,41 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
             ));
         }
 
+        if (null !== $parsedStreams) {
+            foreach ($parsedStreams->getStreams() as $stream) {
+                if ($this->activityStreamRepository->hasOneForActivityAndStreamType($activity->getId(), $stream->getStreamType())) {
+                    continue;
+                }
+                $this->activityStreamRepository->add($stream);
+            }
+            $this->activityRepository->markActivityStreamsAsImported($activity->getId());
+        }
+
         $command->getOutput()->writeln(sprintf(
             '  => [%s] activity: "%s - %s"',
             $isNewActivity ? 'Imported' : 'Updated',
             $activity->getName(),
             $activity->getStartDate()->format('d-m-Y'),
         ));
+    }
+
+    private function fetchParsedStreams(int $endurainActivityId, Activity $activity): ?EndurainParsedStreams
+    {
+        try {
+            $rawStreams = $this->endurain->getAllActivityStreams($endurainActivityId);
+        } catch (ClientException|RequestException $exception) {
+            if (404 === $exception->getResponse()?->getStatusCode()) {
+                // Streams do not exist for this activity.
+                return null;
+            }
+
+            throw $exception;
+        }
+
+        return $this->endurainStreamParser->parse(
+            rawStreams: $rawStreams,
+            activityId: $activity->getId(),
+            createdOn: $this->clock->getCurrentDateTimeImmutable(),
+        );
     }
 }

@@ -8,8 +8,16 @@ use App\Domain\Activity\Activity;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
+use App\Domain\Activity\Stream\ActivityStream;
+use App\Domain\Activity\Stream\ActivityStreamRepository;
+use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Endurain\Endurain;
+use App\Domain\Endurain\Stream\EndurainStreamParser;
+use App\Tests\Infrastructure\Time\Clock\PausedClock;
 use App\Tests\SpyOutput;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -17,17 +25,25 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
 {
     private MockObject $endurain;
     private MockObject $activityRepository;
+    private MockObject $activityStreamRepository;
     private ImportEndurainActivityCommandHandler $handler;
 
-    public function testHandleAddsNewActivity(): void
+    public function testHandleAddsNewActivityAndPersistsStreamsAndPolyline(): void
     {
         $rawData = $this->buildRawEndurainActivity();
+        $rawStreams = $this->buildRawEndurainStreams();
 
         $this->endurain
             ->expects($this->once())
             ->method('getActivity')
             ->with(1)
             ->willReturn($rawData);
+
+        $this->endurain
+            ->expects($this->once())
+            ->method('getAllActivityStreams')
+            ->with(1)
+            ->willReturn($rawStreams);
 
         $this->activityRepository
             ->expects($this->once())
@@ -41,6 +57,8 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
             ->with($this->callback(function (ActivityWithRawData $activityWithRawData) use ($rawData): bool {
                 $this->assertEquals(ActivityId::fromUnprefixed('endurain-1'), $activityWithRawData->getActivity()->getId());
                 $this->assertEquals($rawData, $activityWithRawData->getRawData());
+                // The polyline gets re-encoded from the raw lat/lng stream waypoints.
+                $this->assertNotNull($activityWithRawData->getActivity()->getEncodedPolyline());
 
                 return true;
             }));
@@ -49,6 +67,26 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
             ->expects($this->never())
             ->method('update');
 
+        $this->activityStreamRepository
+            ->method('hasOneForActivityAndStreamType')
+            ->willReturn(false);
+
+        $persistedStreamTypes = [];
+        $this->activityStreamRepository
+            ->expects($this->exactly(2))
+            ->method('add')
+            ->with($this->callback(function (ActivityStream $stream) use (&$persistedStreamTypes): bool {
+                $this->assertEquals(ActivityId::fromUnprefixed('endurain-1'), $stream->getActivityId());
+                $persistedStreamTypes[] = $stream->getStreamType();
+
+                return true;
+            }));
+
+        $this->activityRepository
+            ->expects($this->once())
+            ->method('markActivityStreamsAsImported')
+            ->with(ActivityId::fromUnprefixed('endurain-1'));
+
         $output = new SpyOutput();
         $this->handler->handle(new ImportEndurainActivity(
             output: $output,
@@ -56,17 +94,93 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         ));
 
         $this->assertStringContainsString('Imported', (string) $output);
+        $this->assertEqualsCanonicalizing([StreamType::HEART_RATE, StreamType::LAT_LNG], $persistedStreamTypes);
+    }
+
+    public function testHandleSkipsStreamTypesAlreadyPersisted(): void
+    {
+        $rawData = $this->buildRawEndurainActivity();
+        $rawStreams = $this->buildRawEndurainStreams();
+
+        $this->endurain->expects($this->once())->method('getActivity')->willReturn($rawData);
+        $this->endurain->expects($this->once())->method('getAllActivityStreams')->willReturn($rawStreams);
+        $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
+
+        $this->activityStreamRepository
+            ->expects($this->exactly(2))
+            ->method('hasOneForActivityAndStreamType')
+            ->willReturn(true);
+
+        $this->activityStreamRepository
+            ->expects($this->never())
+            ->method('add');
+
+        $this->activityRepository
+            ->expects($this->once())
+            ->method('markActivityStreamsAsImported');
+
+        $output = new SpyOutput();
+        $this->handler->handle(new ImportEndurainActivity(
+            output: $output,
+            endurainActivityId: 1,
+        ));
+    }
+
+    public function testHandleGracefullyHandles404OnStreamsWithoutPersistingAnyStreams(): void
+    {
+        $rawData = $this->buildRawEndurainActivity();
+
+        $this->endurain->expects($this->once())->method('getActivity')->willReturn($rawData);
+        $this->endurain
+            ->expects($this->once())
+            ->method('getAllActivityStreams')
+            ->willThrowException(new ClientException(
+                'Not Found',
+                new Request('GET', 'api/v1/activities_streams/activity_id/1/all'),
+                new Response(404),
+            ));
+
+        $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
+
+        $this->activityStreamRepository
+            ->expects($this->never())
+            ->method('add');
+
+        $this->activityRepository
+            ->expects($this->never())
+            ->method('markActivityStreamsAsImported');
+
+        $this->activityRepository
+            ->expects($this->once())
+            ->method('add')
+            ->with($this->callback(function (ActivityWithRawData $activityWithRawData): bool {
+                // No streams available, so no polyline could be re-encoded.
+                $this->assertNull($activityWithRawData->getActivity()->getEncodedPolyline());
+
+                return true;
+            }));
+
+        $output = new SpyOutput();
+        $this->handler->handle(new ImportEndurainActivity(
+            output: $output,
+            endurainActivityId: 1,
+        ));
     }
 
     public function testHandleUpdatesExistingActivity(): void
     {
         $rawData = $this->buildRawEndurainActivity();
+        $rawStreams = $this->buildRawEndurainStreams();
 
         $this->endurain
             ->expects($this->once())
             ->method('getActivity')
             ->with(1)
             ->willReturn($rawData);
+
+        $this->endurain
+            ->method('getAllActivityStreams')
+            ->willReturn($rawStreams);
 
         $this->activityRepository
             ->expects($this->once())
@@ -96,6 +210,19 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->activityRepository
             ->expects($this->never())
             ->method('add');
+
+        $this->activityStreamRepository
+            ->expects($this->exactly(2))
+            ->method('hasOneForActivityAndStreamType')
+            ->willReturn(false);
+
+        $this->activityStreamRepository
+            ->expects($this->exactly(2))
+            ->method('add');
+
+        $this->activityRepository
+            ->expects($this->once())
+            ->method('markActivityStreamsAsImported');
 
         $output = new SpyOutput();
         $this->handler->handle(new ImportEndurainActivity(
@@ -157,6 +284,35 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         ];
     }
 
+    /**
+     * @return array<mixed>
+     */
+    private function buildRawEndurainStreams(): array
+    {
+        return [
+            [
+                'id' => 1,
+                'activity_id' => 1,
+                'stream_type' => 1,
+                'stream_waypoints' => [
+                    ['time' => '2026-06-22T19:11:56', 'hr' => 105],
+                    ['time' => '2026-06-22T19:11:57', 'hr' => 106],
+                ],
+                'strava_activity_stream_id' => null,
+                'hr_zone_percentages' => null,
+            ],
+            [
+                'id' => 2,
+                'activity_id' => 1,
+                'stream_type' => 7,
+                'stream_waypoints' => [
+                    ['time' => '2026-06-22T19:11:56', 'lat' => 41.1, 'lon' => 2.1],
+                    ['time' => '2026-06-22T19:11:57', 'lat' => 41.2, 'lon' => 2.2],
+                ],
+            ],
+        ];
+    }
+
     #[\Override]
     protected function setUp(): void
     {
@@ -164,10 +320,14 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
 
         $this->endurain = $this->createMock(Endurain::class);
         $this->activityRepository = $this->createMock(ActivityRepository::class);
+        $this->activityStreamRepository = $this->createMock(ActivityStreamRepository::class);
 
         $this->handler = new ImportEndurainActivityCommandHandler(
             endurain: $this->endurain,
             activityRepository: $this->activityRepository,
+            activityStreamRepository: $this->activityStreamRepository,
+            endurainStreamParser: new EndurainStreamParser(),
+            clock: PausedClock::fromString('2026-07-11 12:00:00'),
         );
     }
 }
