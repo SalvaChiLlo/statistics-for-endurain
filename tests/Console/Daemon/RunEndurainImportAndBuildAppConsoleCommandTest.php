@@ -25,6 +25,7 @@ use App\Tests\Domain\Activity\ActivityBuilder;
 use App\Tests\Infrastructure\CQRS\Command\Bus\SpyCommandBus;
 use App\Tests\Infrastructure\FileSystem\SuccessfulPermissionChecker;
 use App\Tests\Infrastructure\Time\Clock\PausedClock;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -209,6 +210,7 @@ class RunEndurainImportAndBuildAppConsoleCommandTest extends ConsoleCommandTestC
         $this->assertSame(Command::SUCCESS, $commandTester->getStatusCode());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testPostponesWhenLockIsAlreadyAcquired(): void
     {
         $this->getConnection()->executeStatement(
@@ -227,6 +229,7 @@ class RunEndurainImportAndBuildAppConsoleCommandTest extends ConsoleCommandTestC
         );
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testLogsAndRethrowsAndReleasesMutexWhenImportFails(): void
     {
         $this->endurain
