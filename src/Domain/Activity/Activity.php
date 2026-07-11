@@ -7,6 +7,9 @@ use App\Domain\Activity\SportType\SportType;
 use App\Domain\Activity\Stream\ActivityPowerRepository;
 use App\Domain\Activity\Stream\PowerOutput;
 use App\Domain\Activity\Stream\PowerOutputs;
+use App\Domain\Endurain\EndurainActivityType;
+use App\Domain\Endurain\EndurainActivityTypeTranslator;
+use App\Domain\Endurain\EndurainSpeedConverter;
 use App\Domain\Gear\GearId;
 use App\Domain\Gear\RecordingDevice\RecordingDeviceId;
 use App\Domain\Integration\AI\SupportsAITooling;
@@ -181,6 +184,79 @@ final class Activity implements SupportsAITooling
             gearId: GearId::fromOptionalUnprefixed($rawData['gear_id'] ?? null),
             isCommute: $rawData['commute'] ?? false,
             workoutType: WorkoutType::fromStravaInt($rawData['workout_type'] ?? null),
+        );
+    }
+
+    /**
+     * @param array<mixed> $rawData
+     */
+    public static function createFromRawEndurainData(array $rawData): self
+    {
+        // Endurain's "start_time_tz_applied" is already the local time (unlike
+        // "start_time", which is UTC), matching what Strava's "start_date_local"
+        // represents. It has no timezone offset suffix in the string.
+        $startDate = SerializableDateTime::createFromFormat(
+            format: 'Y-m-d\TH:i:s',
+            datetime: $rawData['start_time_tz_applied'],
+            timezone: SerializableTimezone::default(),
+        );
+
+        // Endurain has no single "device_name" field; instead it sends
+        // "tracker_manufacturer" and "tracker_model" separately, both nullable.
+        // Combine them into a single space-separated string (trimmed), or null
+        // when both are absent, to feed WorldType::fromDeviceAndActivityName(),
+        // which only cares about a lowercase device identifier like "zwift".
+        $deviceName = trim(sprintf(
+            '%s %s',
+            $rawData['tracker_manufacturer'] ?? '',
+            $rawData['tracker_model'] ?? '',
+        )) ?: null;
+
+        return self::fromState(
+            // Endurain's activity ids are a separate integer sequence from Strava's.
+            // Prefix the raw id so activities imported from either source can never
+            // collide on the same internal ActivityId.
+            activityId: ActivityId::fromUnprefixed('endurain-'.$rawData['id']),
+            startDateTime: $startDate,
+            sportType: EndurainActivityTypeTranslator::toSportType(EndurainActivityType::from($rawData['activity_type'])),
+            worldType: WorldType::fromDeviceAndActivityName($deviceName, $rawData['name'] ?? ''),
+            importSource: ImportSource::ENDURAIN_API,
+            // Endurain has no equivalent of Strava's "external_id" (an upload-time
+            // reference id set by the recording device/app).
+            externalReferenceId: null,
+            name: ActivityName::fromString($rawData['name']),
+            description: $rawData['description'] ?? null,
+            distance: Kilometer::from(round($rawData['distance'] / 1000, 3)),
+            elevation: Meter::from(round($rawData['elevation_gain'])),
+            // Endurain's activity payload does not include a starting coordinate
+            // (route geography is handled separately, out of scope for this import).
+            startingCoordinate: Coordinate::createFromOptionalLatAndLng(null, null),
+            calories: (int) ($rawData['calories'] ?? 0),
+            // Endurain has no equivalent of Strava's "kilojoules".
+            kilojoules: null,
+            averagePower: isset($rawData['average_power']) ? (int) round($rawData['average_power']) : null,
+            maxPower: isset($rawData['max_power']) ? (int) round($rawData['max_power']) : null,
+            averageSpeed: EndurainSpeedConverter::toKmPerHour((float) $rawData['average_speed']),
+            maxSpeed: EndurainSpeedConverter::toKmPerHour((float) $rawData['max_speed']),
+            averageHeartRate: isset($rawData['average_hr']) ? (int) round($rawData['average_hr']) : null,
+            maxHeartRate: isset($rawData['max_hr']) ? (int) round($rawData['max_hr']) : null,
+            averageCadence: isset($rawData['average_cad']) ? (int) round($rawData['average_cad']) : null,
+            movingTimeInSeconds: (int) round($rawData['total_timer_time'] ?? 0),
+            elapsedTimeInSeconds: (int) round($rawData['total_elapsed_time'] ?? 0),
+            deviceName: $deviceName,
+            // Images, polyline, route geography, gear linkage and weather are all
+            // out of scope for this import (see #4, #5, #14, #15); pass empty/null
+            // defaults exactly like createFromRawStravaData() does for "weather".
+            totalImageCount: 0,
+            localImagePaths: [],
+            polyline: null,
+            routeGeography: RouteGeography::create([]),
+            weather: null,
+            gearId: null,
+            // Endurain has no "commute" concept on an activity.
+            isCommute: false,
+            // Endurain has no equivalent of Strava's "workout_type".
+            workoutType: null,
         );
     }
 
