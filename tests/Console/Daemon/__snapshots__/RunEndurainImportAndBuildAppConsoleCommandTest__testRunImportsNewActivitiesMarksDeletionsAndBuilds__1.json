@@ -1,0 +1,21 @@
+[
+    {
+        "commandName": "App\\Application\\Import\\EndurainImport\\ImportEndurainActivity\\ImportEndurainActivity",
+        "payload": {
+            "output": {},
+            "endurainActivityId": 1
+        }
+    },
+    {
+        "commandName": "App\\Application\\Import\\CalculateActivityMetrics\\CalculateActivityMetrics",
+        "payload": {
+            "output": {}
+        }
+    },
+    {
+        "commandName": "App\\Application\\Build\\RunBuild\\RunBuild",
+        "payload": {
+            "output": {}
+        }
+    }
+]

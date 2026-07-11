@@ -479,6 +479,99 @@ class EndurainTest extends TestCase
         );
     }
 
+    public function testGetCurrentUserIdDecodesSubClaimFromAccessToken(): void
+    {
+        $this->logger
+            ->expects($this->once())
+            ->method('info');
+
+        $fakeJwt = $this->buildFakeJwt(['sub' => 42, 'exp' => 1234567890]);
+
+        $this->client
+            ->expects($this->once())
+            ->method('request')
+            ->willReturn(new Response(200, [], Json::encode([
+                'access_token' => $fakeJwt,
+                'refresh_token' => 'theRefreshToken',
+                'expires_in' => 899,
+            ])));
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertSame(42, $endurain->getCurrentUserId());
+    }
+
+    public function testGetCurrentUserIdCallsGetAccessTokenWhenNoTokenIsCachedYet(): void
+    {
+        $this->logger
+            ->expects($this->once())
+            ->method('info');
+
+        $fakeJwt = $this->buildFakeJwt(['sub' => 7]);
+
+        $this->client
+            ->expects($this->once())
+            ->method('request')
+            ->willReturn(new Response(200, [], Json::encode([
+                'access_token' => $fakeJwt,
+                'refresh_token' => 'theRefreshToken',
+                'expires_in' => 899,
+            ])));
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        // No prior call to getAccessToken(); getCurrentUserId() must trigger login itself.
+        $this->assertSame(7, $endurain->getCurrentUserId());
+    }
+
+    public function testGetCurrentUserIdThrowsWhenAccessTokenIsNotAValidJwt(): void
+    {
+        $this->logger
+            ->expects($this->once())
+            ->method('info');
+
+        $this->client
+            ->expects($this->once())
+            ->method('request')
+            ->willReturn(new Response(200, [], Json::encode([
+                'access_token' => 'not-a-jwt',
+                'refresh_token' => 'theRefreshToken',
+                'expires_in' => 899,
+            ])));
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Could not decode Endurain access token: unexpected JWT format');
+
+        $endurain->getCurrentUserId();
+    }
+
+    public function testGetCurrentUserIdThrowsWhenSubClaimIsMissing(): void
+    {
+        $this->logger
+            ->expects($this->once())
+            ->method('info');
+
+        $fakeJwt = $this->buildFakeJwt(['exp' => 1234567890]);
+
+        $this->client
+            ->expects($this->once())
+            ->method('request')
+            ->willReturn(new Response(200, [], Json::encode([
+                'access_token' => $fakeJwt,
+                'refresh_token' => 'theRefreshToken',
+                'expires_in' => 899,
+            ])));
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Could not decode Endurain access token: missing "sub" claim');
+
+        $endurain->getCurrentUserId();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -490,6 +583,27 @@ class EndurainTest extends TestCase
         Endurain::$cachedAccessToken = null;
         Endurain::$cachedRefreshToken = null;
         Endurain::$cachedAccessTokenExpiresOn = null;
+    }
+
+    /**
+     * Builds a real-shaped (but fake/test-only) JWT string: three base64url segments
+     * separated by '.', with a JSON payload in the middle segment, mirroring the shape
+     * of the real Endurain access token without needing valid signing.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function buildFakeJwt(array $payload): string
+    {
+        $header = ['alg' => 'HS256', 'typ' => 'JWT'];
+
+        $encode = fn (string $json): string => rtrim(strtr(base64_encode($json), '+/', '-_'), '=');
+
+        return sprintf(
+            '%s.%s.%s',
+            $encode(Json::encode($header)),
+            $encode(Json::encode($payload)),
+            'fake-signature',
+        );
     }
 
     private function buildEndurain(string $dateTime): Endurain
