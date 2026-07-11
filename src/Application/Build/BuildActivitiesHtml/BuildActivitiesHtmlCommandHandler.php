@@ -26,7 +26,6 @@ use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Activity\VelocityDistributionChart;
 use App\Domain\Gear\GearRepository;
 use App\Domain\Gear\RecordingDevice\RecordingDeviceRepository;
-use App\Domain\Segment\SegmentEffort\SegmentEffortRepository;
 use App\Domain\Settings\SettingsRepository;
 use App\Infrastructure\CQRS\Command\Command;
 use App\Infrastructure\CQRS\Command\CommandHandler;
@@ -50,7 +49,6 @@ final readonly class BuildActivitiesHtmlCommandHandler implements CommandHandler
         private ActivitySplitRepository $activitySplitRepository,
         private ActivityLapRepository $activityLapRepository,
         private SportTypeRepository $sportTypeRepository,
-        private SegmentEffortRepository $segmentEffortRepository,
         private GearRepository $gearRepository,
         private RecordingDeviceRepository $recordingDeviceRepository,
         private BestEffortsCalculator $bestEffortsCalculator,
@@ -271,7 +269,6 @@ final readonly class BuildActivitiesHtmlCommandHandler implements CommandHandler
                         Slug::fromString($activity->getName()),
                     ),
                     'distributionCharts' => $distributionCharts,
-                    'segmentEfforts' => $this->segmentEffortRepository->findByActivityId($activity->getId()),
                     'splits' => $activitySplits,
                     'laps' => $this->activityLapRepository->findBy($activity->getId()),
                     'profileChartHeight' => $profileChartHeight,

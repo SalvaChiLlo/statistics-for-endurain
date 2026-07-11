@@ -1,8 +1,0 @@
-{
-    "id": "segment-1",
-    "name": "⭐️ Segment One",
-    "sportType": "Ride",
-    "distanceInKilometer": 0.1,
-    "isFavourite": true,
-    "climbCategory": null
-}

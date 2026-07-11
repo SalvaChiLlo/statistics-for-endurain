@@ -9,7 +9,6 @@ use App\Domain\Activity\ActivityIdRepository;
 use App\Domain\Activity\BestEffort\ActivityBestEffortRepository;
 use App\Domain\Activity\Eddington\EddingtonCalculator;
 use App\Domain\Activity\Image\ImageRepository;
-use App\Domain\Challenge\ChallengeRepository;
 use App\Domain\Gear\GearRepository;
 use App\Domain\Gear\Maintenance\Task\Progress\MaintenanceTaskProgressCalculator;
 use App\Domain\Settings\SettingsRepository;
@@ -23,7 +22,6 @@ final readonly class IndexHtml
     public function __construct(
         private ActivityIdRepository $activityIdRepository,
         private GearRepository $gearRepository,
-        private ChallengeRepository $challengeRepository,
         private ActivityBestEffortRepository $activityBestEffortRepository,
         private ImageRepository $imageRepository,
         private EddingtonCalculator $eddingtonCalculator,
@@ -57,7 +55,6 @@ final readonly class IndexHtml
         return [
             'totalActivityCount' => $this->activityIdRepository->count(),
             'eddingtonNumbers' => $eddingtonNumbers,
-            'completedChallenges' => $this->challengeRepository->count(),
             'totalPhotoCount' => $this->imageRepository->count(),
             'hasGear' => $this->gearRepository->hasGear(),
             'lastUpdate' => $now,

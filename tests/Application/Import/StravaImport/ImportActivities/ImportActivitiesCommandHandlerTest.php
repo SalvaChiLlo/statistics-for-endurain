@@ -23,10 +23,6 @@ use App\Domain\Activity\SportType\SportType;
 use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Gear\GearId;
 use App\Domain\Gear\GearRepository;
-use App\Domain\Segment\SegmentEffort\SegmentEffortId;
-use App\Domain\Segment\SegmentEffort\SegmentEffortRepository;
-use App\Domain\Segment\SegmentId;
-use App\Domain\Segment\SegmentRepository;
 use App\Domain\Settings\SettingsGroup;
 use App\Domain\Settings\SettingsRepository;
 use App\Domain\Strava\Strava;
@@ -44,8 +40,6 @@ use App\Tests\Domain\Activity\Lap\ActivityLapBuilder;
 use App\Tests\Domain\Activity\Split\ActivitySplitBuilder;
 use App\Tests\Domain\Activity\Stream\ActivityStreamBuilder;
 use App\Tests\Domain\Gear\GearBuilder;
-use App\Tests\Domain\Segment\SegmentBuilder;
-use App\Tests\Domain\Segment\SegmentEffort\SegmentEffortBuilder;
 use App\Tests\Domain\Strava\SpyStrava;
 use App\Tests\Infrastructure\FileSystem\provideAssertFileSystem;
 use App\Tests\Infrastructure\Time\Clock\PausedClock;
@@ -161,11 +155,6 @@ class ImportActivitiesCommandHandlerTest extends ContainerTestCase
             ]
         ));
 
-        $segmentEffortOne = SegmentEffortBuilder::fromDefaults()
-            ->withActivityId(ActivityId::fromUnprefixed(1000))
-            ->build();
-        $this->getContainer()->get(SegmentEffortRepository::class)->add($segmentEffortOne);
-
         $stream = ActivityStreamBuilder::fromDefaults()
             ->withActivityId(ActivityId::fromUnprefixed(1000))
             ->build();
@@ -178,18 +167,6 @@ class ImportActivitiesCommandHandlerTest extends ContainerTestCase
                 ->build(),
             []
         ));
-        $this->getContainer()->get(SegmentEffortRepository::class)->add(
-            SegmentEffortBuilder::fromDefaults()
-                ->withSegmentId(SegmentId::fromUnprefixed(1000))
-                ->withSegmentEffortId(SegmentEffortId::random())
-                ->withActivityId(ActivityId::fromUnprefixed(1001))
-                ->build()
-        );
-        $this->getContainer()->get(SegmentRepository::class)->add(
-            SegmentBuilder::fromDefaults()
-                ->withSegmentId(SegmentId::fromUnprefixed(1000))
-                ->build()
-        );
         $this->getContainer()->get(ActivityStreamRepository::class)->add(
             ActivityStreamBuilder::fromDefaults()
                 ->withActivityId(ActivityId::fromUnprefixed(1001))
@@ -388,11 +365,6 @@ class ImportActivitiesCommandHandlerTest extends ContainerTestCase
             ]
         ));
 
-        $segmentEffortOne = SegmentEffortBuilder::fromDefaults()
-            ->withActivityId(ActivityId::fromUnprefixed(1000))
-            ->build();
-        $this->getContainer()->get(SegmentEffortRepository::class)->add($segmentEffortOne);
-
         $stream = ActivityStreamBuilder::fromDefaults()
             ->withActivityId(ActivityId::fromUnprefixed(1000))
             ->build();
@@ -455,7 +427,6 @@ class ImportActivitiesCommandHandlerTest extends ContainerTestCase
             'activityVisibilitiesToImport' => [],
             'skipActivitiesRecordedBefore' => null,
             'activitiesToSkipDuringImport' => ['skip'],
-            'optInToSegmentDetailImport' => true,
             'webhooks' => ['enabled' => true, 'verifyToken' => 'ffc26d52-d3ff-4797-a2b7-780a593a3547'],
             ...$overrides,
         ]);

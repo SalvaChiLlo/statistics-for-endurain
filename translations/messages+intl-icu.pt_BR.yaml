@@ -1,4 +1,3 @@
-'# completed': '# concluído'
 '42-day fitness trend': 'Tendência de condicionamento de 42 dias'
 '7-day fatigue level': 'Nível de fadiga de 7 dias'
 '< 1.5: Good variety in training': '< 1.5: Boa variedade no treino'
@@ -32,8 +31,6 @@ Apr: Abr
 'Athlete profile': 'Perfil do atleta'
 Aug: Ago
 Average: Média
-'Average gradient': 'Inclinação média'
-'Avg gradient': 'Inclinação média'
 'Avg pace': 'Ritmo médio'
 'Avg speed': 'Velocidade média'
 'Back Country Ski': 'Esqui Fora de Pista'
@@ -42,7 +39,6 @@ Badminton: Badminton
 Bananas: Bananas
 Basketball: Basquete
 Best: Melhor
-'Best effort': 'Melhor esforço'
 'Best efforts': 'Melhores Esforços'
 'Best efforts for {sportType}': 'Melhores esforços para {sportType}'
 'Build zone (–10)': 'Zona de construção (–10)'
@@ -55,7 +51,6 @@ Calories: Calorias
 Canoeing: Canoagem
 'Carbon saved': 'Carbono economizado'
 'Challenge consistency': 'Consistência nos desafios'
-Challenges: Desafios
 'Chronic Training Load (Fitness) - 42-day exponentially weighted average of your daily training load. Represents long-term training adaptation.': 'Carga de Treinamento Crônica (Condicionamento) - Média móvel exponencial de 42 dias da sua carga de treinamento diária. Representa a adaptação ao treinamento de longo prazo.'
 'Clear all filters': 'Limpar todos os filtros'
 'Clear chat': 'Limpar chat'
@@ -104,7 +99,6 @@ Duration: Duração
 Eddington: Eddington
 'Eddington number': 'Número de Eddington'
 'Eddington over time': 'Eddington ao longo do tempo'
-'Effort vs heart rate': 'Esforço vs frequência cardíaca'
 'Elapsed time': 'Tempo decorrido'
 Elev: Desnível
 Elev.: Elev.
@@ -118,12 +112,9 @@ Energy: Energia
 Evening: 'Fim da tarde'
 'Excludes commutes': 'Ocultar deslocamentos'
 'FTP history': 'Histórico de FTP'
-Favourite: Favorito
 Feb: Fev
-'Filter on KOM segments': 'Filtrar por segmentos KOM'
 'Filter on country': 'Filtrar por país'
 'Filter on sport type': 'Filtrar por tipo de esporte'
-'Filter on starred segments': 'Filtrar por segmentos favoritos'
 'First activity in {countryName}': 'Primeira atividade em {countryName}'
 'First-ever activity recorded': 'Primeira atividade registrada'
 Firsts: Primeiros
@@ -146,8 +137,6 @@ Goal: Meta
 Golf: Golfe
 'Good training variety': 'Boa variedade de treino'
 'Google searches': 'Pesquisas no Google'
-Grad.: Incl.
-Gradient: Inclinação
 'Gravel Rides': 'Pedais de Gravel'
 "Guidelines vary by individual; for more information see Joe Friel's 'The Cyclist's Training Bible' or TrainingPeaks' research documentation.": "As diretrizes variam de acordo com o indivíduo; para mais informações, consulte 'A Bíblia de Treinamento do Ciclista' de Joe Friel ou a documentação de pesquisa do TrainingPeaks."
 HIIT: HIIT
@@ -163,7 +152,6 @@ High: Alta
 'High risk': 'Alto risco'
 'Highly recovered and ready to perform': 'Totalmente recuperado e pronto para render'
 Hikes: Caminhadas
-History: Histórico
 'History (6 weeks)': 'Histórico (6 semanas)'
 'How diverse is your training': 'Quão diversificado é o seu treino'
 'How hard is your typical training session': 'Qual a intensidade da sua sessão de treino típica'
@@ -185,15 +173,12 @@ Intensity: Intensidade
 Jan: Jan
 Jul: Jul
 Jun: Jun
-KOM: KOM
 Kayaking: Caiaque
 'Kite Surf': Kitesurf
 Lap: Volta
 'Last 30 days': 'Últimos 30 dias'
 'Last 7 days training load': 'Carga de treino dos últimos 7 dias'
 'Last activity': 'Última atividade'
-'Last effort': 'Último esforço'
-'Last effort date': 'Data do último esforço'
 'Last maintenance': 'Última manutenção'
 'Last month': 'Último mês'
 'Last week': 'Última semana'
@@ -217,7 +202,6 @@ Low: Baixa
 Maintenance: Manutenção
 Mar: Mar
 Max: Máx
-'Max gradient': 'Inclinação máxima'
 May: Mai
 Medium: Média
 Metric: Métrico
@@ -233,7 +217,6 @@ Monthly: Mensal
 Morning: Manhã
 'Most elevation': 'Maior ganho de elevação'
 'Most recent activities': 'Atividades mais recentes'
-'Most recent challenges': 'Desafios mais recentes'
 'Most recent milestones': 'Marcos mais recentes'
 'Mountain Bike Rides': 'Pedais de MTB'
 'Moving time': 'Tempo em movimento'
@@ -256,9 +239,7 @@ Nov: Nov
 Now: Agora
 'Number of activities': 'Number of activities'
 'Number of activities per month': 'Número de atividades por mês'
-'Number of times completed': 'Número de vezes concluído'
 Oct: Out
-'Older effort': 'Esforço mais antigo'
 'On average, that works out to {dailyAverage} per day, a weekly average of {weeklyAverage} and a monthly average of {monthlyAverage} 🐣.': 'Em média, isso dá {dailyAverage} por dia, uma média semanal de {weeklyAverage} e uma média mensal de {monthlyAverage} 🐣.'
 'One of your gear maintenance tasks is due': 'Uma das suas tarefas de manutenção do equipamento está vencida'
 'Optimal training range': 'Faixa ideal de treinamento'
@@ -296,7 +277,6 @@ Ranking: Ranking
 'Reached {threshold} hours total moving time': 'Alcançou {threshold} horas de tempo total em movimento'
 'Reached {threshold} total distance': 'Alcançou {threshold} de distância total'
 'Reached {threshold} total elevation': 'Alcançou {threshold} de elevação total'
-'Recent effort': 'Esforço recente'
 'Recording devices': 'Dispositivos de gravação'
 'Recording devices details': 'Detalhes dos dispositivos de gravação'
 'Recovery Timeline': 'Linha do Tempo de Recuperação'
@@ -321,10 +301,7 @@ Runs: Corridas
 Sail: Vela
 Sat: Sáb
 Sat.: Sáb.
-Search: Pesquisar
 'Search activity...': 'Pesquisar atividade...'
-'Search segment...': 'Pesquisar segmento...'
-Segments: Segmentos
 'Sends a notification when a new app version is available. Requires a configured notification service.': 'Sends a notification when a new app version is available. Requires a configured notification service.'
 'Sends a notification when gear maintenance is due. Requires a configured notification service.': 'Sends a notification when gear maintenance is due. Requires a configured notification service.'
 Sep: Set
@@ -463,7 +440,6 @@ Time: Tempo
 Title: Título
 'To enable it, configure this in the admin panel and rebuild the files for the changes to take effect': 'To enable it, configure this in the admin panel and rebuild the files for the changes to take effect'
 'Toggle sidebar': 'Ativar/desativar barra lateral'
-'Top 10': 'Top 10'
 'Total distance per month': 'Distância total por mês'
 'Total elevation per month': 'Elevação total por mês'
 'Total hours spent per gear': 'Horas totais por equipamento'
@@ -541,7 +517,6 @@ activities: atividades
 and: e
 avg: méd
 bpm: bpm
-challenges: desafios
 clear: limpar
 compare: comparar
 countries: países

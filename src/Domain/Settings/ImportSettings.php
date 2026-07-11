@@ -8,7 +8,6 @@ use App\Application\Import\StravaImport\ImportActivities\ActivitiesToSkipDuringI
 use App\Application\Import\StravaImport\ImportActivities\ActivityVisibilitiesToImport;
 use App\Application\Import\StravaImport\ImportActivities\NumberOfNewActivitiesToProcessPerImport;
 use App\Application\Import\StravaImport\ImportActivities\SkipActivitiesRecordedBefore;
-use App\Application\Import\StravaImport\ImportSegments\OptInToSegmentDetailsImport;
 use App\Domain\Activity\SportType\SportTypesToImport;
 use App\Domain\Strava\Webhook\WebhookConfig;
 
@@ -20,7 +19,6 @@ final readonly class ImportSettings
         private ActivityVisibilitiesToImport $activityVisibilitiesToImport,
         private ActivitiesToSkipDuringImport $activitiesToSkipDuringImport,
         private ?SkipActivitiesRecordedBefore $skipActivitiesRecordedBefore,
-        private OptInToSegmentDetailsImport $optInToSegmentDetailsImport,
         private WebhookConfig $webhookConfig,
     ) {
     }
@@ -52,7 +50,6 @@ final readonly class ImportSettings
             activityVisibilitiesToImport: ActivityVisibilitiesToImport::from($data['activityVisibilitiesToImport'] ?? []),
             activitiesToSkipDuringImport: ActivitiesToSkipDuringImport::from($activitiesToSkip),
             skipActivitiesRecordedBefore: SkipActivitiesRecordedBefore::fromOptionalString($data['skipActivitiesRecordedBefore'] ?? null),
-            optInToSegmentDetailsImport: OptInToSegmentDetailsImport::fromBool(filter_var($data['optInToSegmentDetailImport'] ?? false, FILTER_VALIDATE_BOOLEAN)),
             webhookConfig: WebhookConfig::fromArray($webhooks),
         );
     }
@@ -80,11 +77,6 @@ final readonly class ImportSettings
     public function getSkipActivitiesRecordedBefore(): ?SkipActivitiesRecordedBefore
     {
         return $this->skipActivitiesRecordedBefore;
-    }
-
-    public function getOptInToSegmentDetailsImport(): OptInToSegmentDetailsImport
-    {
-        return $this->optInToSegmentDetailsImport;
     }
 
     public function getWebhookConfig(): WebhookConfig

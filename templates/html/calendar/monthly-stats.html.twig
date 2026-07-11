@@ -31,9 +31,6 @@
                         <th scope="col">
                             {{ "Cal."|trans }}
                         </th>
-                        <th scope="col">
-                            # {{ "challenges"|trans }}
-                        </th>
                     </tr>
                     </thead>
                     {% for month in months %}
@@ -74,9 +71,6 @@
                                 </td>
                                 <td class="truncate">
                                     {{ statsForCurrentMonth.calories|formatNumber(0) }}<span class="text-xxs ml-px">kcal</span>
-                                </td>
-                                <td class="truncate">
-                                    {{ challenges|filter(challenge => challenge.getCreatedOn().format('Y-m') == month.getId())|length }}
                                 </td>
                             </tr>
                             </tbody>

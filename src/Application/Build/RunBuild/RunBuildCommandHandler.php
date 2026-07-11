@@ -8,7 +8,6 @@ use App\Application\AppStatusChecker;
 use App\Application\Build\BuildActivitiesHtml\BuildActivitiesHtml;
 use App\Application\Build\BuildBadgeSvg\BuildBadgeSvg;
 use App\Application\Build\BuildBestEffortsHtml\BuildBestEffortsHtml;
-use App\Application\Build\BuildChallengesHtml\BuildChallengesHtml;
 use App\Application\Build\BuildDashboardHtml\BuildDashboardHtml;
 use App\Application\Build\BuildEddingtonHtml\BuildEddingtonHtml;
 use App\Application\Build\BuildGearMaintenanceHtml\BuildGearMaintenanceHtml;
@@ -22,7 +21,6 @@ use App\Application\Build\BuildMonthlyStatsHtml\BuildMonthlyStatsHtml;
 use App\Application\Build\BuildPhotosHtml\BuildPhotosHtml;
 use App\Application\Build\BuildRecordingDevices\BuildRecordingDevices;
 use App\Application\Build\BuildRewindHtml\BuildRewindHtml;
-use App\Application\Build\BuildSegmentsHtml\BuildSegmentsHtml;
 use App\Application\Build\ConfigureAppColors\ConfigureAppColors;
 use App\Application\Build\ConfigureAppLocale\ConfigureAppLocale;
 use App\Application\Import\StravaImport\ImportGear\GearImportStatus;
@@ -74,11 +72,9 @@ This is not a bug, once all your activities have been imported, your gear statis
             'Building recording devices' => new BuildRecordingDevices(),
             'Building eddington' => new BuildEddingtonHtml($now),
             'Building milestones' => new BuildMilestonesHtml(),
-            'Building segments' => new BuildSegmentsHtml(),
             'Building heatmap' => new BuildHeatmapHtml($now),
             'Building best efforts' => new BuildBestEffortsHtml(),
             'Building rewind' => new BuildRewindHtml($now),
-            'Building challenges' => new BuildChallengesHtml($now),
             'Building photos' => new BuildPhotosHtml(),
             'Building badges' => new BuildBadgeSvg($now),
         ];

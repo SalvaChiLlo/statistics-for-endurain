@@ -117,8 +117,6 @@ General: General
 Image: Bild
 Images: Bilder
 Import: Import
-'Import segment details': 'Import segment details'
-'Import segment details so segment maps can be displayed. This needs an extra Strava API call per segment and increases import time significantly.': 'Import segment details so segment maps can be displayed. This needs an extra Strava API call per segment and increases import time significantly.'
 'Imported files will appear here once you upload them.': 'Importierte Dateien werden hier angezeigt, sobald du sie hochlädst.'
 'Imported from Strava': 'Von Strava importiert'
 'Include retired gear': 'Include retired gear'
@@ -152,7 +150,6 @@ Model: Model
 'Normal date format': 'Normal date format'
 'Notification services': 'Notification services'
 'Number of activities to display': 'Number of activities to display'
-'Number of challenges to display': 'Number of challenges to display'
 'Number of milestones to display': 'Number of milestones to display'
 'Number of new activities to process per import': 'Number of new activities to process per import'
 'Number of widgets of this type you already have configured.': 'Number of widgets of this type you already have configured.'

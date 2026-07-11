@@ -8,7 +8,6 @@ use App\Application\AppUrl;
 use App\Domain\Activity\Activity;
 use App\Domain\Activity\SportType\SportType;
 use App\Domain\Image\ImageOrientation;
-use App\Domain\Segment\Segment;
 use App\Infrastructure\ValueObject\String\RelativeUrl;
 use Twig\Attribute\AsTwigFilter;
 use Twig\Attribute\AsTwigFunction;
@@ -71,27 +70,6 @@ final readonly class UrlTwigExtension
             $activityIcon,
             $truncate ? 'truncate' : '',
             $ellipses ? $this->stringTwigExtension->doEllipses($activityTitle, $ellipses) : $activityTitle
-        );
-    }
-
-    #[AsTwigFilter('segmentLink', isSafe: ['html'])]
-    public function renderSegmentTitleLink(Segment $segment): string
-    {
-        $segmentIcon = match (true) {
-            !$segment->getSportType()->isVirtualRide() => $this->svgsTwigExtension->svgSportType($segment->getSportType()),
-            $segment->isZwiftSegment() => $this->svgsTwigExtension->svg('zwift-logo'),
-            $segment->isRouvySegment() => $this->svgsTwigExtension->svg('rouvy-logo'),
-            $segment->isMyWhooshSegment() => $this->svgsTwigExtension->svg('my-whoosh-logo'),
-            default => $this->svgsTwigExtension->svgSportType(SportType::RIDE),
-        };
-
-        $segmentTitle = $segment->getName();
-
-        return sprintf(
-            '<a href="#" data-model-content-url="%s" class="flex items-center gap-x-1 font-medium text-blue-600 hover:underline" rel="nofollow">%s<span class="truncate">%s</span></a>',
-            $this->toRelativeUrl('segment/'.$segment->getId().'.html'),
-            $segmentIcon,
-            $this->stringTwigExtension->doEllipses((string) $segmentTitle, 50)
         );
     }
 }

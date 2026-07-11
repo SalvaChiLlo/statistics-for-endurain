@@ -7,7 +7,6 @@ namespace App\Tests\Domain\Strava;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Gear\GearId;
-use App\Domain\Segment\SegmentId;
 use App\Domain\Strava\RateLimit\StravaRateLimitHasBeenReached;
 use App\Domain\Strava\RateLimit\StravaRateLimits;
 use App\Domain\Strava\Strava;
@@ -15,9 +14,7 @@ use App\Domain\Strava\StravaClientId;
 use App\Domain\Strava\StravaClientSecret;
 use App\Domain\Strava\StravaRefreshToken;
 use App\Infrastructure\Serialization\Json;
-use App\Infrastructure\ValueObject\String\KernelProjectDir;
 use App\Infrastructure\ValueObject\String\Url;
-use App\Infrastructure\ValueObject\Time\SerializableDateTime;
 use App\Tests\Infrastructure\Time\Clock\PausedClock;
 use App\Tests\Infrastructure\Time\Sleep\NullSleep;
 use App\Tests\NullLogger;
@@ -25,8 +22,6 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use League\Flysystem\Filesystem;
-use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
 
 class SpyStrava extends Strava
 {
@@ -37,15 +32,13 @@ class SpyStrava extends Strava
     private bool $triggerExceptionOnNextActivityCall = false;
     private bool $returnActivityWithoutSegmentEfforts = false;
 
-    public function __construct(
-        private readonly KernelProjectDir $kernelProjectDir,
-    ) {
+    public function __construct()
+    {
         parent::__construct(
             client: new Client(),
             stravaClientId: StravaClientId::fromString('clientId'),
             stravaClientSecret: StravaClientSecret::fromString('clientSecret'),
             stravaRefreshToken: StravaRefreshToken::fromString('refreshToken'),
-            filesystemOperator: new Filesystem(new InMemoryFilesystemAdapter()),
             sleep: new NullSleep(),
             logger: new NullLogger(),
             clock: PausedClock::fromString('2025-11-02 23:45:12')
@@ -229,25 +222,6 @@ class SpyStrava extends Strava
     }
 
     #[\Override]
-    public function getSegment(SegmentId $segmentId): array
-    {
-        if ($this->triggerExceptionOnNextCall) {
-            $this->triggerExceptionOnNextCall = false;
-            throw new RequestException(message: 'The error', request: new Request('GET', 'uri'), response: new Response(500, [], Json::encode(['error' => 'The error'])));
-        }
-
-        ++$this->numberOfCallsExecuted;
-        $this->throw429IfMaxNumberOfCallsIsExceeded();
-
-        $segments = [
-            'segment-1' => ['map' => ['polyline' => 'DaLine']],
-            'segment-2' => ['map' => ['polyline' => 'DaLine2']],
-        ];
-
-        return $segments[(string) $segmentId];
-    }
-
-    #[\Override]
     public function getWebhookSubscription(): array
     {
         return [
@@ -277,42 +251,6 @@ class SpyStrava extends Strava
     #[\Override]
     public function deleteWebhookSubscription(string $subscriptionId): void
     {
-    }
-
-    #[\Override]
-    public function getChallengesOnTrophyCase(): array
-    {
-        if ($this->triggerExceptionOnNextCall) {
-            $this->triggerExceptionOnNextCall = false;
-            throw new RequestException(message: 'The error', request: new Request('GET', 'uri'), response: new Response(500, [], Json::encode(['error' => 'The error'])));
-        }
-
-        return [
-            [
-                'name' => 'Challenge 1',
-                'teaser' => 'Craziest challenge ever',
-                'logo_url' => $this->kernelProjectDir.'/tests/cat.webp',
-                'url' => 'https://www.strava.com',
-                'challenge_id' => '123456',
-                'completedOn' => SerializableDateTime::fromString('2023-10-01'),
-            ],
-            [
-                'name' => 'Challenge 1',
-                'teaser' => 'Craziest challenge ever',
-                'logo_url' => $this->kernelProjectDir.'/tests/cat.webp',
-                'url' => 'https://www.strava.com',
-                'challenge_id' => '123456',
-                'completedOn' => SerializableDateTime::fromString('2023-10-01'),
-            ],
-            [
-                'name' => 'Challenge 2',
-                'teaser' => 'Craziest challenge ever',
-                'logo_url' => $this->kernelProjectDir.'/tests/cat.webp',
-                'url' => 'https://www.strava.com',
-                'challenge_id' => '654321',
-                'completedOn' => SerializableDateTime::fromString('2023-10-01'),
-            ],
-        ];
     }
 
     #[\Override]

@@ -10,7 +10,6 @@ use App\Domain\Activity\ActivityType;
 use App\Domain\Activity\BestEffort\BestEffortPeriod;
 use App\Domain\Activity\BestEffort\BestEffortsCalculator;
 use App\Domain\Activity\EnrichedActivities;
-use App\Domain\Challenge\ChallengeRepository;
 use App\Domain\Settings\SettingsRepository;
 use App\Domain\Zwift\ZwiftLevel;
 use App\Infrastructure\CQRS\Command\Command;
@@ -23,7 +22,6 @@ final readonly class BuildBadgeSvgCommandHandler implements CommandHandler
 {
     public function __construct(
         private SettingsRepository $settingsRepository,
-        private ChallengeRepository $challengeRepository,
         private EnrichedActivities $enrichedActivities,
         private BestEffortsCalculator $bestEffortsCalculator,
         private AppUrl $appUrl,
@@ -56,7 +54,6 @@ final readonly class BuildBadgeSvgCommandHandler implements CommandHandler
                 'athlete' => $athlete,
                 'activities' => $activities->slice(0, 5),
                 'activityTotals' => $activityTotals,
-                'challengesCompleted' => $this->challengeRepository->count(),
             ])
         );
 

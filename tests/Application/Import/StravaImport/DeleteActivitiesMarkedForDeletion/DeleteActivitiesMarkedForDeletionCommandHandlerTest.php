@@ -12,12 +12,7 @@ use App\Domain\Activity\BestEffort\ActivityBestEffortRepository;
 use App\Domain\Activity\Lap\ActivityLapRepository;
 use App\Domain\Activity\Split\ActivitySplitRepository;
 use App\Domain\Activity\Stream\ActivityStreamRepository;
-use App\Domain\Segment\SegmentEffort\SegmentEffortId;
-use App\Domain\Segment\SegmentEffort\SegmentEffortRepository;
-use App\Domain\Segment\SegmentId;
-use App\Domain\Segment\SegmentRepository;
 use App\Infrastructure\CQRS\Command\Bus\CommandBus;
-use App\Infrastructure\Repository\Pagination;
 use App\Infrastructure\ValueObject\Measurement\UnitSystem;
 use App\Tests\ContainerTestCase;
 use App\Tests\Domain\Activity\ActivityBuilder;
@@ -25,8 +20,6 @@ use App\Tests\Domain\Activity\BestEffort\ActivityBestEffortBuilder;
 use App\Tests\Domain\Activity\Lap\ActivityLapBuilder;
 use App\Tests\Domain\Activity\Split\ActivitySplitBuilder;
 use App\Tests\Domain\Activity\Stream\ActivityStreamBuilder;
-use App\Tests\Domain\Segment\SegmentBuilder;
-use App\Tests\Domain\Segment\SegmentEffort\SegmentEffortBuilder;
 use App\Tests\SpyOutput;
 use Spatie\Snapshots\MatchesSnapshots;
 
@@ -55,11 +48,6 @@ class DeleteActivitiesMarkedForDeletionCommandHandlerTest extends ContainerTestC
             []
         ));
 
-        $segmentEffortOne = SegmentEffortBuilder::fromDefaults()
-            ->withActivityId(ActivityId::fromUnprefixed(1000))
-            ->build();
-        $this->getContainer()->get(SegmentEffortRepository::class)->add($segmentEffortOne);
-
         $stream = ActivityStreamBuilder::fromDefaults()
             ->withActivityId(ActivityId::fromUnprefixed(1000))
             ->build();
@@ -72,18 +60,6 @@ class DeleteActivitiesMarkedForDeletionCommandHandlerTest extends ContainerTestC
                 ->build(),
             []
         ));
-        $this->getContainer()->get(SegmentEffortRepository::class)->add(
-            SegmentEffortBuilder::fromDefaults()
-                ->withSegmentId(SegmentId::fromUnprefixed(1000))
-                ->withSegmentEffortId(SegmentEffortId::random())
-                ->withActivityId(ActivityId::fromUnprefixed(1001))
-                ->build()
-        );
-        $this->getContainer()->get(SegmentRepository::class)->add(
-            SegmentBuilder::fromDefaults()
-                ->withSegmentId(SegmentId::fromUnprefixed(1000))
-                ->build()
-        );
         $this->getContainer()->get(ActivityStreamRepository::class)->add(
             ActivityStreamBuilder::fromDefaults()
                 ->withActivityId(ActivityId::fromUnprefixed(1001))
@@ -114,14 +90,6 @@ class DeleteActivitiesMarkedForDeletionCommandHandlerTest extends ContainerTestC
         $this->assertEquals(
             1,
             $this->getContainer()->get(ActivityIdRepository::class)->count()
-        );
-        $this->assertCount(
-            0,
-            $this->getContainer()->get(SegmentEffortRepository::class)->findByActivityId(ActivityId::fromUnprefixed(1001))
-        );
-        $this->assertCount(
-            0,
-            $this->getContainer()->get(SegmentRepository::class)->findAll(Pagination::fromOffsetAndLimit(0, 100))
         );
         $this->assertCount(
             0,

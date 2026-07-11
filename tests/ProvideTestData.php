@@ -22,38 +22,27 @@ use App\Domain\Activity\Stream\Metric\ActivityStreamMetric;
 use App\Domain\Activity\Stream\Metric\ActivityStreamMetricRepository;
 use App\Domain\Activity\Stream\Metric\ActivityStreamMetricType;
 use App\Domain\Activity\Stream\StreamType;
-use App\Domain\Challenge\ChallengeId;
-use App\Domain\Challenge\ChallengeRepository;
 use App\Domain\Gear\GearId;
 use App\Domain\Gear\GearRepository;
 use App\Domain\Gear\RecordingDevice\RecordingDevice;
 use App\Domain\Gear\RecordingDevice\RecordingDeviceRepository;
 use App\Domain\Integration\Weather\OpenMeteo\Weather;
-use App\Domain\Segment\SegmentEffort\SegmentEffortId;
-use App\Domain\Segment\SegmentEffort\SegmentEffortRepository;
-use App\Domain\Segment\SegmentId;
-use App\Domain\Segment\SegmentRepository;
 use App\Infrastructure\KeyValue\Key;
 use App\Infrastructure\KeyValue\KeyValue;
 use App\Infrastructure\KeyValue\KeyValueStore;
 use App\Infrastructure\KeyValue\Value;
 use App\Infrastructure\Serialization\Json;
-use App\Infrastructure\ValueObject\Measurement\Length\Kilometer;
 use App\Infrastructure\ValueObject\Measurement\Length\Meter;
 use App\Infrastructure\ValueObject\Measurement\UnitSystem;
 use App\Infrastructure\ValueObject\Measurement\Velocity\KmPerHour;
 use App\Infrastructure\ValueObject\Measurement\Velocity\SecPerKm;
-use App\Infrastructure\ValueObject\String\Name;
 use App\Infrastructure\ValueObject\Time\SerializableDateTime;
 use App\Tests\Domain\Activity\BestEffort\ActivityBestEffortBuilder;
 use App\Tests\Domain\Activity\Lap\ActivityLapBuilder;
 use App\Tests\Domain\Activity\Split\ActivitySplitBuilder;
 use App\Tests\Domain\Activity\Stream\ActivityStreamBuilder;
 use App\Tests\Domain\Activity\Stream\CombinedStream\CombinedActivityStreamBuilder;
-use App\Tests\Domain\Challenge\ChallengeBuilder;
 use App\Tests\Domain\Gear\GearBuilder;
-use App\Tests\Domain\Segment\SegmentBuilder;
-use App\Tests\Domain\Segment\SegmentEffort\SegmentEffortBuilder;
 use Money\Currency;
 use Money\Money;
 use Symfony\Component\DependencyInjection\Container;
@@ -66,8 +55,6 @@ trait ProvideTestData
     {
         $this->addGeneralFixtures();
         $this->addGearFixtures();
-        $this->addSegmentFixtures();
-        $this->addChallengeFixtures();
 
         $this->addActivityOneFixtures();
         $this->addActivityTwoFixtures();
@@ -141,71 +128,6 @@ trait ProvideTestData
         );
     }
 
-    private function addSegmentFixtures(): void
-    {
-        /** @var SegmentRepository $segmentRepository */
-        $segmentRepository = $this->getContainer()->get(SegmentRepository::class);
-        $segmentRepository->add(
-            SegmentBuilder::fromDefaults()
-                ->withSegmentId(SegmentId::fromUnprefixed('1'))
-                ->withName(Name::fromString('Segment One'))
-                ->withDistance(Kilometer::from(0.1))
-                ->withMaxGradient(5.3)
-                ->withIsFavourite(true)
-                ->withDeviceName('Polar')
-                ->withSportType(SportType::RIDE)
-                ->build()
-        );
-        $segmentRepository->add(
-            SegmentBuilder::fromDefaults()
-                ->withSegmentId(SegmentId::fromUnprefixed('2'))
-                ->withName(Name::fromString('Segment Two'))
-                ->withDistance(Kilometer::from(0.11))
-                ->withMaxGradient(1)
-                ->withIsFavourite(false)
-                ->withDeviceName('Polar')
-                ->withSportType(SportType::RIDE)
-                ->build()
-        );
-        $segmentRepository->add(
-            SegmentBuilder::fromDefaults()
-                ->withSegmentId(SegmentId::fromUnprefixed('17267489'))
-                ->withName(Name::fromString('Alpe du Zwift'))
-                ->withDistance(Kilometer::from(0.1))
-                ->withMaxGradient(5.3)
-                ->withIsFavourite(true)
-                ->withDeviceName('Polar')
-                ->withSportType(SportType::RIDE)
-                ->build()
-        );
-    }
-
-    private function addChallengeFixtures(): void
-    {
-        /** @var ChallengeRepository $challengeRepository */
-        $challengeRepository = $this->getContainer()->get(ChallengeRepository::class);
-        $challengeRepository->add(
-            ChallengeBuilder::fromDefaults()
-                ->withChallengeId(ChallengeId::fromUnprefixed('4022'))
-                ->withCreatedOn(SerializableDateTime::fromString('2023-10-13 18:38:34'))
-                ->withName('Castelli Keep It Up')
-                ->withSlug('castelli-keep-it-up-2023')
-                ->withLogoUrl('https://dgalywyr863hv.cloudfront.net/challenges/4022/4022-logo-100.png')
-                ->withLocalLogoUrl('files/challenges/b7537b1e-69f7-11ee-a81e-0242a0cd5a47.png')
-                ->build()
-        );
-        $challengeRepository->add(
-            ChallengeBuilder::fromDefaults()
-                ->withChallengeId(ChallengeId::fromUnprefixed('3809'))
-                ->withCreatedOn(SerializableDateTime::fromString('2023-06-03 17:32:21'))
-                ->withName('June Sweat With Pride Challenge')
-                ->withSlug('June-Sweat-With-Pride-Challenge-2023')
-                ->withLogoUrl('https://dgalywyr863hv.cloudfront.net/challenges/3809/3809-logo-100.png')
-                ->withLocalLogoUrl('files/challenges/98b92ae4-0234-11ee-ad06-000d3a360b3f.png')
-                ->build()
-        );
-    }
-
     private function addActivityOneFixtures(): void
     {
         /** @var ActivityRepository $activityRepository */
@@ -268,54 +190,6 @@ trait ProvideTestData
             activity: $activity,
             rawData: $rawData
         ));
-
-        /** @var SegmentEffortRepository $segmentEffortRepository */
-        $segmentEffortRepository = $this->getContainer()->get(SegmentEffortRepository::class);
-
-        $segmentEffortRepository->add(
-            SegmentEffortBuilder::fromDefaults()
-                ->withSegmentEffortId(SegmentEffortId::fromUnprefixed('1'))
-                ->withSegmentId(SegmentId::fromUnprefixed('1'))
-                ->withActivityId(ActivityId::fromUnprefixed('9542782314'))
-                ->withElapsedTimeInSeconds(10.3)
-                ->withAverageWatts(200)
-                ->withDistance(Kilometer::from(0.1))
-                ->withName('An effort')
-                ->build()
-        );
-        $segmentEffortRepository->add(
-            SegmentEffortBuilder::fromDefaults()
-                ->withSegmentEffortId(SegmentEffortId::fromUnprefixed('alpe-du-zwift'))
-                ->withSegmentId(SegmentId::fromUnprefixed('17267489'))
-                ->withActivityId(ActivityId::fromUnprefixed('9542782314'))
-                ->withElapsedTimeInSeconds(10.3)
-                ->withAverageWatts(200)
-                ->withDistance(Kilometer::from(0.1))
-                ->withName('An effort')
-                ->build()
-        );
-        $segmentEffortRepository->add(
-            SegmentEffortBuilder::fromDefaults()
-                ->withSegmentEffortId(SegmentEffortId::fromUnprefixed('2'))
-                ->withSegmentId(SegmentId::fromUnprefixed('1'))
-                ->withActivityId(ActivityId::fromUnprefixed('9542782314'))
-                ->withElapsedTimeInSeconds(9.3)
-                ->withAverageWatts(200)
-                ->withDistance(Kilometer::from(0.1))
-                ->withName('An effort')
-                ->build()
-        );
-
-        $segmentEffortRepository->add(
-            SegmentEffortBuilder::fromDefaults()
-                ->withSegmentEffortId(SegmentEffortId::fromUnprefixed('3'))
-                ->withSegmentId(SegmentId::fromUnprefixed('2'))
-                ->withActivityId(ActivityId::fromUnprefixed('9542782314'))
-                ->withElapsedTimeInSeconds(10.3)
-                ->withDistance(Kilometer::from(0.1))
-                ->withName('An effort')
-                ->build()
-        );
 
         /** @var ActivityBestEffortRepository $activityBestEffortRepository */
         $activityBestEffortRepository = $this->getContainer()->get(ActivityBestEffortRepository::class);
