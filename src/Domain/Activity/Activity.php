@@ -252,7 +252,13 @@ final class Activity implements SupportsAITooling
             polyline: null,
             routeGeography: RouteGeography::create([]),
             weather: null,
-            gearId: null,
+            // Endurain's gear ids are a separate integer sequence from Strava's.
+            // Prefix the raw id (mirroring ActivityId's "endurain-" convention,
+            // see EndurainGearTranslator::toGearId()) so gear imported from
+            // either source can never collide on the same internal GearId.
+            gearId: is_null($rawData['gear_id'] ?? null)
+                ? null
+                : GearId::fromUnprefixed('endurain-'.$rawData['gear_id']),
             // Endurain has no "commute" concept on an activity.
             isCommute: false,
             // Endurain has no equivalent of Strava's "workout_type".

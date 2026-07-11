@@ -215,6 +215,46 @@ class Endurain
     }
 
     /**
+     * Fetches the paginated gear list for the authenticated user. Endurain
+     * wraps this response in a pagination object (`{"total", "num_records",
+     * "page_number", "records"}`), unlike the bare-array activities list;
+     * only the "records" array is returned here, matching the "return the
+     * useful raw array" convention of the other getters on this class.
+     *
+     * This is intentionally a single-page fetch: gear collections are
+     * expected to be small, and full pagination handling is out of scope
+     * for the narrow single-activity gear-linkage use case this supports.
+     *
+     * @return array<mixed>
+     */
+    public function getGears(): array
+    {
+        $decoded = Json::decode($this->request('api/v1/gears', 'GET', [
+            RequestOptions::HEADERS => [
+                'Authorization' => 'Bearer '.$this->getAccessToken(),
+                self::CLIENT_TYPE_HEADER => self::CLIENT_TYPE_VALUE,
+            ],
+        ]));
+
+        return $decoded['records'] ?? [];
+    }
+
+    /**
+     * Fetches a single gear item by id.
+     *
+     * @return array<mixed>
+     */
+    public function getGear(int $gearId): array
+    {
+        return Json::decode($this->request('api/v1/gears/id/'.$gearId, 'GET', [
+            RequestOptions::HEADERS => [
+                'Authorization' => 'Bearer '.$this->getAccessToken(),
+                self::CLIENT_TYPE_HEADER => self::CLIENT_TYPE_VALUE,
+            ],
+        ]));
+    }
+
+    /**
      * @param array<mixed> $decodedResponse
      */
     private function cacheTokens(array $decodedResponse): string
