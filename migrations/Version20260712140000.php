@@ -15,13 +15,33 @@ use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Auto-generated Migration: Please modify to your needs!
+ * Corrective follow-up for Version20260706053720.
+ *
+ * Version20260706053720 unconditionally referenced the (never-existing)
+ * SettingsGroup::IMPORT enum case, so on any real deployment with a
+ * config.yaml present it threw a PHP Error before any of its addSql()
+ * statements were ever executed by the migration runner. In practice this
+ * meant the migration either:
+ *  - failed outright and was never marked as executed, or
+ *  - was manually force-marked as executed via
+ *    `doctrine:migrations:version --add` to unblock the deploy, which left
+ *    the migrations table believing this version had run while none of its
+ *    config.yaml -> KeyValue backfill (dashboard/general/appearance/metrics/
+ *    zwift/integrations/daemon settings) had actually happened.
+ *
+ * Version20260706053720 has already shipped in tagged releases (v5.0.0,
+ * v5.1.0), so instances that force-marked it as executed will never re-run
+ * its (now fixed) logic on their own. This migration re-applies the same
+ * config.yaml backfill so those instances end up with the settings they
+ * should have gotten in the first place. It is idempotent (REPLACE INTO) so
+ * it is harmless to run again even on instances where Version20260706053720
+ * did complete successfully after being fixed.
  */
-final class Version20260706053720 extends AbstractMigration
+final class Version20260712140000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return '';
+        return 'Re-apply the config.yaml settings backfill from Version20260706053720 for instances where that migration was force-marked as executed without ever running (due to the SettingsGroup::IMPORT crash).';
     }
 
     public function up(Schema $schema): void
@@ -101,12 +121,8 @@ final class Version20260706053720 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
-        $this->addSql('DELETE FROM KeyValue WHERE `key` = :key', ['key' => Key::DASHBOARD->value]);
-        $this->addSql('DELETE FROM KeyValue WHERE `key` = :key', ['key' => SettingsGroup::GENERAL->keyValueKey()->value]);
-        $this->addSql('DELETE FROM KeyValue WHERE `key` = :key', ['key' => SettingsGroup::APPEARANCE->keyValueKey()->value]);
-        $this->addSql('DELETE FROM KeyValue WHERE `key` = :key', ['key' => SettingsGroup::METRICS->keyValueKey()->value]);
-        $this->addSql('DELETE FROM KeyValue WHERE `key` = :key', ['key' => SettingsGroup::ZWIFT->keyValueKey()->value]);
-        $this->addSql('DELETE FROM KeyValue WHERE `key` = :key', ['key' => SettingsGroup::INTEGRATIONS->keyValueKey()->value]);
-        $this->addSql('DELETE FROM KeyValue WHERE `key` = :key', ['key' => SettingsGroup::DAEMON->keyValueKey()->value]);
+        // This migration only ever re-applies the same idempotent backfill
+        // Version20260706053720 already owns; that migration's own down()
+        // is responsible for deleting the resulting KeyValue rows.
     }
 }
