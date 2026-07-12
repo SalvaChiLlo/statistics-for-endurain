@@ -1,8 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Discord - the community chat
-    url: https://discord.gg/p4zpZyCHNc
-    about: Join the Discord community and chat about Dreeve
   - name: Documentation pages
-    url: https://docs.getsfs.app/
-    about: Everything you need to setup and configure Dreeve
+    url: https://github.com/SalvaChiLlo/statistics-for-endurain/blob/master/docs/home.md
+    about: Everything you need to setup and configure this app

@@ -2,7 +2,7 @@
 
 Keep track of your gear and stay on top of maintenance tasks with our **Gear Maintenance** feature. It allows you to:
 
-- Automatically track gear usage based your Strava activities
+- Automatically track gear usage based on your synced activities
 - Monitor usage-based or time-based maintenance intervals.
 - Visualize components and tasks with custom images.
 - Organize everything via a simple YAML configuration.
@@ -11,9 +11,9 @@ Keep track of your gear and stay on top of maintenance tasks with our **Gear Mai
 
 ## How It Works
 
-* Every time a Strava activity is synced, the system checks if the activity involves any of your tracked gear.
+* Every time an activity is synced, the system checks if the activity involves any of your tracked gear.
 * It then calculates the usage of each attached component and updates the progress automatically.
-* If the Strava activity title contains one of the configured hashtags, the app will reset the maintenance task and counters from the next activity onwards and will start re-tracking from 0 again.
+* If the activity title contains one of the configured hashtags, the app will reset the maintenance task and counters from the next activity onwards and will start re-tracking from 0 again.
 
 [Gear maintenance](https://www.youtube.com/embed/mYFmIFgUIYU ':include :type=iframe width=100% height=400px title="Dreeve" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen')
 
@@ -24,15 +24,15 @@ Keep track of your gear and stay on top of maintenance tasks with our **Gear Mai
 ```yaml
 services:
   app:
-    image: robiningelbrecht/strava-statistics:latest
-    container_name: dreeve
+    image: ghcr.io/salvachillo/statistics-for-endurain:latest
+    container_name: statistics-for-endurain
     volumes:
       - ./config:/var/www/config/app
       # ...
       - ./storage/gear-maintenance:/var/www/storage/gear-maintenance # Gear maintenance images
   daemon:
-    image: robiningelbrecht/strava-statistics:latest
-    container_name: dreeve-daemon
+    image: ghcr.io/salvachillo/statistics-for-endurain:latest
+    container_name: statistics-for-endurain-daemon
     volumes:
       - ./config:/var/www/config/app
       # ...
@@ -61,7 +61,7 @@ You should end up with the following directory structure:
 ```yml
 # Set to true to enable the gear maintenance feature
 enabled: false
-# Prefix for the hashtags used in the Strava activity title
+# Prefix for the hashtags used in the activity title
 hashtagPrefix: 'sfs'
 # If set to "nextActivityOnwards", adding a maintenance hashtag to an activity title will reset the counters from the next activity onwards.
 # If set to "currentActivityOnwards", adding a maintenance hashtag to an activity title will reset the counters from the tagged activity onwards.
@@ -70,7 +70,7 @@ countersResetMode: nextActivityOnwards
 # Set to true to ignore retired gear
 ignoreRetiredGear: false
 components:
-  # Tag to be added to the Strava activity title.
+  # Tag to be added to the activity title.
   # Will be combined with the hashtag-prefix and must be unique across all components.
   # Example: #sfs-chain
   - tag: 'chain'
@@ -80,7 +80,7 @@ components:
     # The image must be located in the `storage/gear-maintenance` volume.
     imgSrc: 'chain.png'
     # List of gear ids this component is attached to
-    # See: https://docs.dreeve.app/#/configuration/gear-maintenance?id=strava-gear-ids to obtain this ID
+    # See: /#/configuration/gear-maintenance?id=gear-ids to obtain this ID
     attachedTo:
       - 'gxxxxxxxx' # May not always start with g 
       - 'gxxxxxxxx'
@@ -90,7 +90,7 @@ components:
       currency: 'EUR'
     # A list of maintenance tasks for this component
     maintenance:
-      # Tag to be added to the Strava activity title.
+      # Tag to be added to the activity title.
       # Will be combined with the hashtag-prefix and the component tag.
       # Must be unique across all tasks in the component.
       # Example: #sfs-chain-lubed
@@ -116,7 +116,7 @@ gears:
 ```
 
 > [!IMPORTANT]
-> **Important** After each change to these values, you need to run the <i>app:data:import</i> command again for the changes to take effect
+> **Important** After each change to these values, you need to run the import/build command (e.g. <i>app:cron:run-endurain-import</i>) again for the changes to take effect
 
 
 ## Components
@@ -137,7 +137,7 @@ Each component represents a part of your gear that you want to track maintenance
         unit: km       
 ```
 
-Adding the tag `#sfs-chain-lubed` to your Strava activity title will reset the maintenance task and counters from the next activity onwards.
+Adding the tag `#sfs-chain-lubed` to your activity title will reset the maintenance task and counters from the next activity onwards.
 
 > [!NOTE]
 > This tag also serves as the initial trigger to start maintenance tracking
@@ -145,7 +145,7 @@ Adding the tag `#sfs-chain-lubed` to your Strava activity title will reset the m
 
 ## Gears
 
-Define your Strava gear and associate images to display in the UI.
+Define your gear and associate images to display in the UI.
 
 ```yaml
 gears:
@@ -153,7 +153,7 @@ gears:
     imgSrc: 'gear1.png'
 ```
 
-Make sure the gearId matches your Strava gear, and the image is located in the `gear-maintenance`volume.
+Make sure the gearId matches a gear id from the app's own Gear management page (admin panel), and the image is located in the `gear-maintenance` volume.
 
 ## Best Practices
 
@@ -162,8 +162,7 @@ Make sure the gearId matches your Strava gear, and the image is located in the `
 * Group components logically under relevant gear items.
 * Choose intuitive labels and meaningful intervals to make maintenance easy.
 
-## Strava gear IDs
+## Gear IDs
 
-To attach components to specific gear in your config, you’ll need the gear ID from Strava. You can find these IDs by clicking the question mark icon in the top-right corner:
-
-![image](https://github.com/user-attachments/assets/4e7b8833-6d1d-4bdc-aae4-14ee7c4757a5)
+To attach components to specific gear in your config, you'll need each gear's ID. You can find these on the
+app's own Gear management page in the admin panel.

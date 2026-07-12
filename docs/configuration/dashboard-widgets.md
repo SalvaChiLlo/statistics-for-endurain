@@ -32,7 +32,6 @@ appearance:
       - { 'widget': 'zwiftStats', 'width': 50, 'enabled': true }
       - { 'widget': 'ftpHistory', 'width': 50, 'enabled': true }
       - { 'widget': 'challengeConsistency', 'width': 50, 'enabled': true, 'config': { 'challenges': [] } }
-      - { 'widget': 'mostRecentChallengesCompleted', 'width': 50, 'enabled': true, 'config': { 'numberOfChallengesToDisplay': 5 } }
       - { 'widget': 'athleteWeightHistory', 'width': 50, 'enabled': true }
 ```
 
@@ -92,7 +91,7 @@ unit: 'km'
 # The goal.
 goal: 200
 # The sport types to include in this goal.
-# For a complete list of supported sport types, visit: https://docs.dreeve.app/#/configuration/main-configuration?id=supported-sport-types
+# For a complete list of supported sport types, visit: /#/configuration/main-configuration?id=supported-sport-types
 sportTypesToInclude: ['Ride', 'MountainBikeRide', 'GravelRide', 'VirtualRide']
 # Optional: restrict this goal to a specific date range. When omitted, the goal is always active.
 # This allows you to adjust goals according to your training plan.
@@ -362,7 +361,7 @@ unit: 'km'
 # The goal of the challenge.
 goal: 200
 # The sport types to include in this challenge.
-# For a complete list of supported sport types, visit: https://docs.dreeve.app/#/configuration/main-configuration?id=supported-sport-types
+# For a complete list of supported sport types, visit: /#/configuration/main-configuration?id=supported-sport-types
 # Leave this empty to include all sport types.
 sportTypesToInclude: ['Ride', 'MountainBikeRide', 'GravelRide', 'VirtualRide']
 ```
@@ -389,18 +388,6 @@ sportTypesToInclude: ['Ride', 'MountainBikeRide', 'GravelRide', 'VirtualRide']
 ```
 
 ![challengeConsistency widget](../assets/images/dashboard-widgets/challenge-consistency.png)
-
-## mostRecentChallengesCompleted
-
-This widget displays your most recent challenges.
-
-* __numberOfChallengesToDisplay__: the number of challenges to display.
-
-```yml
-{ 'widget': 'mostRecentChallengesCompleted', 'width': 50, 'enabled': true, 'config': { 'numberOfChallengesToDisplay': 5 } }
-```
-
-![mostRecentChallengesCompleted widget](../assets/images/dashboard-widgets/most-recent-challenges.png)
 
 ## athleteWeightHistory
 

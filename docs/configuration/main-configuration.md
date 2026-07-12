@@ -2,10 +2,20 @@
 
 The main configuration yaml file contains all the settings for you to customize the app and set it up to your liking.
 
+> [!NOTE]
+> A growing number of settings (the athlete profile, dashboard layout, appearance and more) are now
+> managed through the admin panel's **Settings** UI instead. On first startup, `config.yaml` and any
+> `config-*.yaml` files are migrated once into the database; after that, the admin panel is the source
+> of truth for those settings and further edits to the yaml files for them have no effect. See the
+> [installation page](/getting-started/installation.md?id=first-run-database-migration-quirk) for a
+> known rough edge with this one-time migration. Settings not yet exposed in the UI still come from
+> these yaml files.
+
 [include](config-yaml-example.md ':include')
 
 > [!IMPORTANT]
-> **Important** After each change to these values, you need to run the _app:data:build_ command again for the changes to take effect
+> **Important** After each change to these values, you need to run the import/build command
+> (e.g. `app:cron:run-endurain-import`) again for the changes to take effect
 
 ## Splitting your configuration into multiple files
 
@@ -36,15 +46,10 @@ general:
       "2023-01-01": 69
 ```
 
-`config-import.yaml`
+`config-metrics.yaml`
 ```yaml
-import:
-  numberOfNewActivitiesToProcessPerImport: 250
-  sportTypesToImport: ["Ride", "VirtualRide", "MountainBikeRide", "GravelRide"]
-  activityVisibilitiesToImport: []
-  skipActivitiesRecordedBefore: null
-  activitiesToSkipDuringImport: []
-  optInToSegmentDetailImport: true
+metrics:
+  excludeActivitiesFromPeakPowerOutputs: []
 ```
 
 All matching config files are combined into a single final configuration:
@@ -60,13 +65,8 @@ general:
       "2024-02-29": 64.5
       "2023-09-21": 68
       "2023-01-01": 69
-import:
-  numberOfNewActivitiesToProcessPerImport: 250
-  sportTypesToImport: ["Ride", "VirtualRide", "MountainBikeRide", "GravelRide"]
-  activityVisibilitiesToImport: []
-  skipActivitiesRecordedBefore: null
-  activitiesToSkipDuringImport: []
-  optInToSegmentDetailImport: true
+metrics:
+  excludeActivitiesFromPeakPowerOutputs: []
 ```
 
 > [!TIP]
@@ -143,12 +143,12 @@ This lets you create very specific zones for different scenarios.
           from: 91
           to: null # Infinity and beyond.
       # You can further refine your zones by specifying date ranges.
-      # This works the same way as weight and FTP history: https://docs.dreeve.app/#/configuration/main-configuration?id=athlete-weight-historys
+      # This works the same way as weight and FTP history: /#/configuration/main-configuration?id=athlete-weight-historys
       dateRanges:
         "2025-01-01": ...
         "2024-11-08": ...
       # You can also override your heart rate zones for specific sport types.    
-      # A full list of allowed options is available on https://docs.dreeve.app/#/configuration/main-configuration?id=supported-sport-types      
+      # A full list of allowed options is available on /#/configuration/main-configuration?id=supported-sport-types      
       sportTypes:
         GravelRide:
           # The default heart rate zones for all GravelRide activities.

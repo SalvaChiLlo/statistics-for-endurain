@@ -17,7 +17,8 @@ Unfortunately, we still don’t know exactly how or why this corruption occurs.
 
 To resolve this, we’ve created a CLI tool that can detect corrupted data 
 by identifying the activities that trigger these errors and deleting them. 
-During the next import run, the deleted activities will be automatically re-imported from Strava.
+During the next import run, the deleted activities will be automatically re-imported from Endurain (or
+re-processed from your local files, depending on their import source).
 
 Run the following command:
 

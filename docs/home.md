@@ -1,31 +1,26 @@
 <p class="flex justify-center">
-  <img width="250" src="https://github.com/dreeveapp/dreeve/raw/master/public/assets/images/logo.svg" alt="Logo">
+  <img width="250" src="https://raw.githubusercontent.com/SalvaChiLlo/statistics-for-endurain/master/public/assets/images/logo.svg" alt="Logo">
 </p>
 
-<h4 class="text-center">Dreeve is a self-hosted, open-source dashboard for your sports and fitness data</h4>
+<h4 class="text-center">Statistics for Endurain is a self-hosted, open-source dashboard for your sports and fitness data</h4>
 
 <div class="text-center">
-<a href="https://raw.githubusercontent.com/dreeveapp/dreeve/refs/heads/master/LICENSE"><img src="https://img.shields.io/github/license/dreeveapp/dreeve?color=428f7e&logo=open%20source%20initiative&logoColor=white" alt="License"></a>
-<a href="https://hub.docker.com/r/robiningelbrecht/dreeve"><img src="https://img.shields.io/docker/image-size/robiningelbrecht/dreeve?logo=docker&logoColor=white" alt="Docker Image Size"></a>
-<a href="https://hub.docker.com/r/robiningelbrecht/dreeve"><img src="https://img.shields.io/docker/v/robiningelbrecht/dreeve?sort=semver&logo=docker&logoColor=white" alt="Docker version"></a>
-<a href="https://discord.gg/p4zpZyCHNc"><img src="https://img.shields.io/badge/Statistics%20for%20Strava-%235865F4?logo=discord&logoColor=%23ffffff&label=%20&labelColor=585858" alt="Discord server"></a>  
+<a href="https://raw.githubusercontent.com/SalvaChiLlo/statistics-for-endurain/refs/heads/master/LICENSE"><img src="https://img.shields.io/github/license/SalvaChiLlo/statistics-for-endurain?color=428f7e&logo=open%20source%20initiative&logoColor=white" alt="License"></a>
+<a href="https://github.com/SalvaChiLlo/statistics-for-endurain/pkgs/container/statistics-for-endurain"><img src="https://img.shields.io/badge/container-ghcr.io-428f7e?logo=docker&logoColor=white" alt="Docker image"></a>
 </div>
 
 ---
 
 > [!NOTE]
-> On June 1, 2026, Strava announced significant changes to its Developer Program,
-> including a requirement for developers to have an active Strava subscription in order to access the API.
->
-> We are exploring possibilities to serve people with an active Strava subscription as well as people that want to move away from Strava.
-> Keep an eye out on future release notes or join our Discord server to stay up to date.
+> This is a fork of [robiningelbrecht/statistics-for-strava](https://github.com/robiningelbrecht/statistics-for-strava) (branded **Dreeve** upstream)
+> converted to sync exclusively against a self-hosted [Endurain](https://github.com/joaovitoriasilva/endurain) instance using a dedicated
+> service-account login. All Strava OAuth/API integration, webhooks, segment import and the Strava trophy-case/challenges import have been
+> removed. Local FIT/GPX/TCX file import remains available independently.
 
 # :camera_flash: Showcase
 
 > [!NOTE]
-> **Note** This app is in no way affiliated with or part of the official Strava software suite.
-
-[Showcase](https://www.youtube.com/embed/UfVLXqAtlX8 ':include :type=iframe width=100% height=400px title="Dreeve" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen')
+> **Note** This app is in no way affiliated with or part of the official Strava or Endurain software suites.
 
 ## Key Features
 
@@ -34,18 +29,18 @@
 * **Monthly View** - Monthly stats with an interactive calendar
 * **Gear stats** - Track how much you've used each bike, shoe, etc.
 * **Track gear** - Track custom gear setups
-* **Maintenance Tracking** - Keep tabs on gear wear and tear ([instructions](https://docs.dreeve.app/#/configuration/gear-maintenance))
+* **Maintenance Tracking** - Keep tabs on gear wear and tear ([instructions](configuration/gear-maintenance.md))
 * **Eddington** - For your distance milestones
-* **Segments & Efforts** - Dive into your segment history and times
-* **Heatmap** - Visualize where you’ve been active the most
+* **Heatmap** - Visualize where you've been active the most
 * **Milestones** - A timeline view of your key achievements and milestones over time
-* **Strava Rewind** - A fun way to look back on your year in motion
-* **Challenges** - See which Strava challenges you've conquered
+* **Rewind** - A fun way to look back on your year in motion
 * **Activity Photos** - Relive your moments with a photo archive
+* **AI workout assistant** - Get personalized workout suggestions and insights powered by AI ([instructions](configuration/ai-integration.md))
 * **User badges** - Shareable badges you can embed on your website, blog, or forum profiles
 * **PWA support** - Use it like a native app on your phone
 
 > [!WARNING]
 > * **Backup before updates**: Always backup your Docker volumes before upgrading.
 > * **Stay up-to-date**: Make sure you're running the latest version for the best experience.
-> * **Check the release notes**: Always check the release notes to verify if there are any breaking changes.
+> * **Check the release notes**: Always check the [release notes](https://github.com/SalvaChiLlo/statistics-for-endurain/releases) to verify if there are any breaking changes.
+> * **No automatic sync yet**: activities are only pulled from Endurain when you run the import command yourself (or via the daemon container / your own scheduler) — there is no built-in periodic sync. See [Scheduling](getting-started/scheduling.md) and [issue #44](https://github.com/SalvaChiLlo/statistics-for-endurain/issues/44).

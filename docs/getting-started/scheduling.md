@@ -1,12 +1,17 @@
 # Scheduling
 
-Your data only updates when the import and build commands are run.
-If you have configured the [daemon](https://docs.dreeve.app/#/getting-started/installation?id=docker-composeyml) container, these commands will run automatically.
-Alternatively, you can implement your own mechanism to perform these updates without relying on the built-in daemon container.
+Your data only updates when the import/build commands are run — there is currently **no built-in
+periodic sync** of the Endurain integration itself (tracked as a known gap in
+[issue #44](https://github.com/SalvaChiLlo/statistics-for-endurain/issues/44)).
+If you have configured the [daemon](/getting-started/installation.md?id=docker-composeyml) container, the
+actions listed under `daemon.cron` in your `config.yaml` (gear maintenance/update notifications, and
+file imports) will run automatically according to their schedule, but the Endurain sync itself
+(`app:cron:run-endurain-import`) must still be triggered yourself — via the daemon container's own
+schedule if you add it there, or via one of the mechanisms below.
 
 ## Using the built-in crontab on your host system
 
-You can use the built-in crontab on your host system to run the import and build commands at regular intervals.
+You can use the built-in crontab on your host system to run the import/build commands at regular intervals.
 To do this, you need to add a new cron job to your crontab:
 
 ```bash
@@ -16,7 +21,7 @@ To do this, you need to add a new cron job to your crontab:
 ### Example
 
 ```bash
-> 0 19 * * * cd /path/to/compose.yaml && docker compose exec app bin/console app:data:import && docker compose exec app bin/console app:data:build
+> 0 19 * * * cd /path/to/compose.yaml && docker compose exec app bin/console app:cron:run-endurain-import
 ```
 
 ```bash
@@ -33,19 +38,17 @@ To do this, you need to add a new cron job to your crontab:
 ## Using a Docker cron container
 
 If you have no access to the host system's crontab,
-you can use a Docker cron container to run the import and build commands at regular intervals.
+you can use a Docker cron container to run the import command at regular intervals.
 
 ### Ofelia
 
 https://github.com/mcuadros/ofelia
 
-There are some problems with Ofelia when chaining commands. To get around this, a shell script can be used.
 Create a file called `refresh.sh` (or a name of your choosing) with the contents shown below:
 
 ```bash
 #!/bin/sh
-bin/console app:data:import
-bin/console app:data:build
+bin/console app:cron:run-endurain-import
 ```
 
 Edit `docker-compose.yml` to include the shell script as well as the Ofelia image.
@@ -54,17 +57,17 @@ Make sure the path to the shell script matches its location on your system.
 ```yml
 services:
   app:
-    image: robiningelbrecht/strava-statistics:latest
+    image: ghcr.io/salvachillo/statistics-for-endurain:latest
     volumes:
       - ./refresh.sh:/bin/refresh.sh
       - # ... other volumes
     # ... other configuration options
     labels:
-      # refresh SFS daily at 7pm (1900). NB: ofelia includes seconds in the cron job 
+      # sync Endurain daily at 7pm (1900). NB: ofelia includes seconds in the cron job
       ofelia.enabled: "true"
       ofelia.job-exec.datecron.schedule: "0 0 19 * * *"
       ofelia.job-exec.datecron.command: "sh /bin/refresh.sh"
-      
+
   ofelia:
     image: mcuadros/ofelia:latest
     depends_on:
@@ -88,17 +91,17 @@ It contains cron base images for various distros.
 ## Using Synology NAS task scheduler
 
 If you are running the app on a Synology NAS,
-you can use the Task Scheduler to run the import and build commands at regular intervals.
+you can use the Task Scheduler to run the import command at regular intervals.
 
 1. Open Control Panel -> Task Scheduler
 2. Then Create -> Scheduled Task -> User Defined Script.
-3. Set the name to `SFS Sync` and define the User as root. Ensure it is enabled.
+3. Set the name to `Endurain Sync` and define the User as root. Ensure it is enabled.
 4. On the schedule, choose the desired frequency.
 5. In the Task Settings, in the Run command textbox, enter:
 
 ```bash
-docker exec dreeve bin/console app:data:import && docker exec dreeve bin/console app:data:build
+docker exec statistics-for-endurain bin/console app:cron:run-endurain-import
 ```
 
 > [!IMPORTANT]
-> **Important** Make sure to replace the "dreeve" with the container name you have defined in the container.
+> **Important** Make sure to replace `statistics-for-endurain` with the container name you have defined for the `app` service.

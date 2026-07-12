@@ -1,3 +1,40 @@
+# [v5.1.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.0.0...v5.1.0)
+
+## Bug fixes
+* ISSUE #45: Fixed Endurain activity polylines rendering as a short straight line instead of the real route
+* Applied Rector fixes to keep the CI Rector check passing
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
+# [v5.0.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v4.8.8...v5.0.0)
+
+This is the first release of **statistics-for-endurain**, a fork of
+[robiningelbrecht/statistics-for-strava](https://github.com/robiningelbrecht/statistics-for-strava) (branded
+**Dreeve** upstream) that replaces the Strava integration with a sync against a self-hosted
+[Endurain](https://github.com/joaovitoriasilva/endurain) instance.
+
+## Breaking changes
+* All Strava OAuth/API integration, webhooks, segment import, and the Strava trophy-case/challenges import
+  have been removed. Activity photo download via the Strava API pipeline was also removed.
+* Syncing now requires a dedicated Endurain service account (`ENDURAIN_URL`, `ENDURAIN_USERNAME`,
+  `ENDURAIN_PASSWORD`) instead of a Strava OAuth app. Local FIT/GPX/TCX file import remains available
+  independently.
+
+## New features
+* Added an Endurain auth client (JWT login with rotated refresh tokens), activity/gear/stream import, and a
+  daemon command (`app:cron:run-endurain-import`) to sync activities, streams and gear from Endurain.
+* Added a one-time migration command (`app:migrate:from-statistics-for-strava`) to import an existing
+  statistics-for-strava SQLite database into this app without re-fetching data from the Strava API.
+
+## Technical details
+* This release diverges from upstream `v4.8.8`; see the linked compare view for the full commit history of
+  the conversion work (issues #4, #5, #8, #9, #10, #12–#17 and others in this repository's issue tracker).
+
+> [!NOTE]
+> This entry summarizes the release at a high level rather than listing every commit, since this diverges
+> significantly from the upstream project's per-PR changelog format above.
+
 # [v4.8.8](https://github.com/dreeveapp/dreeve/releases/tag/v4.8.8) - 2026-06-14
 
 ## Improvements

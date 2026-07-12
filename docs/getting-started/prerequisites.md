@@ -3,26 +3,24 @@
 > [!NOTE]
 > **Note** To run this application, you'll need <a href="https://docs.docker.com/engine/install/">Docker</a> with <a href="https://docs.docker.com/compose/install/">Docker Compose</a>.
 
-Since this app is called <i>Dreeve</i>, it obviously requires a Strava account.
-In addition, there are a few other things you'll need to set up before you can start using the app.
-Most importantly, you'll need a `Strava client ID` and `Strava client Secret`
+This is an Endurain-only fork: it syncs exclusively against a self-hosted
+[Endurain](https://github.com/joaovitoriasilva/endurain) instance, using a dedicated service-account
+login rather than an OAuth flow. Before you start the [installation](/getting-started/installation.md),
+make sure you have:
 
-* Navigate to your [Strava API settings page](https://www.strava.com/settings/api).
-* Copy the `client ID` and `client secret`, you'll need these during the [installation](/getting-started/installation.md)
-* Make sure the `Website` and `Authorization Callback Domain` are set to the url you will host your app on.
-  You can configure these by clicking the __Edit__ button on the top right-hand side of the page.
-* Make sure to add an App Icon. You can find this setting at the bottom of the API settings page.
+* A reachable Endurain instance (its base URL, e.g. `https://endurain.example.com`).
+* A **dedicated service account** on that instance for this app to log in as.
+  Use a non-MFA account — the daemon/import commands cannot complete an MFA challenge, so an
+  MFA-enabled account will fail to authenticate.
+* Two required app-level secrets that have no default anywhere in the shipped image:
+  * `APP_SECRET` — used by Symfony for session/CSRF signing. Generate one with `openssl rand -hex 16`.
+  * `APP_URL` — the public URL this instance will be reachable on.
 
-> [!IMPORTANT]
-> **Important** Do not include a port number in the _Authorization Callback Domain_ field.
-
-
-![Strava API settings page](../assets/images/strava-api-settings.png)
+  Omitting either of these produces confusing errors during setup (see the
+  [installation](/getting-started/installation.md) page for details) rather than a clear message
+  pointing at the missing variable.
 
 ## Map visibility
 
-To view maps of your activities in the app, make sure your Strava map visibility settings are configured correctly.
-Go to your [Strava account settings](https://www.strava.com/settings/privacy) 
-and make sure <i>Hide your activity maps from others completely</i> is not enabled.
-
-![Strava API privacy settings](../assets/images/strava-privacy-settings.png)
+To view maps of your activities in the app, make sure the activities you import from Endurain
+have their location data available (i.e. `hide_map` is not set on the activity in Endurain).
