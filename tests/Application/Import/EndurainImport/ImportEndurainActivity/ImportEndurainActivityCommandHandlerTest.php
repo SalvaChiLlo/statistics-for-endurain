@@ -87,7 +87,7 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
 
         $persistedStreamTypes = [];
         $this->activityStreamRepository
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(4))
             ->method('add')
             ->with($this->callback(function (ActivityStream $stream) use (&$persistedStreamTypes): bool {
                 $this->assertEquals(ActivityId::fromUnprefixed('endurain-1'), $stream->getActivityId());
@@ -108,7 +108,11 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         ));
 
         $this->assertStringContainsString('Imported', (string) $output);
-        $this->assertEqualsCanonicalizing([StreamType::HEART_RATE, StreamType::LAT_LNG], $persistedStreamTypes);
+        // Fixed for #45: EndurainStreamParser now also derives TIME
+        // (elapsed seconds) and DISTANCE (cumulative meters) streams, which
+        // Endurain never sends itself - without them, evolution/over-time
+        // charts silently failed to render for Endurain-imported activities.
+        $this->assertEqualsCanonicalizing([StreamType::HEART_RATE, StreamType::LAT_LNG, StreamType::TIME, StreamType::DISTANCE], $persistedStreamTypes);
     }
 
     #[AllowMockObjectsWithoutExpectations]
@@ -169,7 +173,7 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
             ->method('dispatch');
 
         $this->activityStreamRepository
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(4))
             ->method('hasOneForActivityAndStreamType')
             ->willReturn(true);
 
@@ -284,12 +288,12 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
             ->method('dispatch');
 
         $this->activityStreamRepository
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(4))
             ->method('hasOneForActivityAndStreamType')
             ->willReturn(false);
 
         $this->activityStreamRepository
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(4))
             ->method('add');
 
         $this->activityRepository
@@ -419,8 +423,8 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
         $this->activityRepository->expects($this->once())->method('add');
         $this->activityRepository->expects($this->once())->method('markActivityStreamsAsImported');
-        $this->activityStreamRepository->expects($this->exactly(2))->method('hasOneForActivityAndStreamType')->willReturn(false);
-        $this->activityStreamRepository->expects($this->exactly(2))->method('add');
+        $this->activityStreamRepository->expects($this->exactly(4))->method('hasOneForActivityAndStreamType')->willReturn(false);
+        $this->activityStreamRepository->expects($this->exactly(4))->method('add');
 
         $this->commandBus
             ->expects($this->never())
@@ -446,8 +450,8 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->endurain->expects($this->once())->method('getAllActivityStreams')->willReturn($rawStreams);
         $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
         $this->activityRepository->expects($this->once())->method('markActivityStreamsAsImported');
-        $this->activityStreamRepository->expects($this->exactly(2))->method('hasOneForActivityAndStreamType')->willReturn(false);
-        $this->activityStreamRepository->expects($this->exactly(2))->method('add');
+        $this->activityStreamRepository->expects($this->exactly(4))->method('hasOneForActivityAndStreamType')->willReturn(false);
+        $this->activityStreamRepository->expects($this->exactly(4))->method('add');
 
         $this->commandBus
             ->expects($this->once())

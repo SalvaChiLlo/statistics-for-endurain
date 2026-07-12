@@ -22,7 +22,30 @@ final readonly class Polyline
         return new self($coordinates);
     }
 
-    public function simplify(float $tolerance = 0.4): self
+    /**
+     * Default tolerance is expressed in the same unit as the coordinates
+     * themselves, i.e. decimal degrees of latitude/longitude - NOT meters,
+     * pixels, or any projected unit. This matters a lot: 0.4 degrees is
+     * roughly 44km at the equator (less towards the poles for longitude,
+     * but still tens of km), so a 0.4 default silently collapsed almost
+     * every real-world activity's route down to just its two endpoints,
+     * since very few individual activities deviate from the straight
+     * start-to-end line by tens of kilometers. This was confirmed against
+     * a real ~14km ride's GPS track (issue #45): its full lat/lng
+     * bounding box only spanned roughly 0.02 degrees in each axis, well
+     * under the old 0.4 tolerance, so Douglas-Peucker discarded every
+     * interior point and left only the first/last coordinate - a
+     * "polyline" that renders as a single short straight line.
+     *
+     * 0.00005 degrees (~5.5m at the equator) was chosen instead: still
+     * comfortably larger than typical consumer GPS noise/jitter so it
+     * keeps reducing point count for near-straight stretches (the
+     * original motivation for adding simplify() at all, per #2230's
+     * WKT-length overflow), while staying far below the scale of a real
+     * route's deviation from its start-end chord, so genuine route shape
+     * survives.
+     */
+    public function simplify(float $tolerance = 0.00005): self
     {
         $points = $this->coordinates;
 
