@@ -1,3 +1,14 @@
+# [v5.2.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.1.0...v5.2.0)
+
+## Features
+* ISSUE #44: Wire periodic Endurain sync into the daemon cron scheduler (`IMPORT_AND_BUILD_SCHEDULE`, defaults to every 15 minutes)
+
+## Bug fixes
+* Fixed a crash in the settings migration caused by a dead `SettingsGroup::IMPORT` reference left over from the Strava-era config removal
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
 # [v5.1.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.0.0...v5.1.0)
 
 ## Bug fixes
