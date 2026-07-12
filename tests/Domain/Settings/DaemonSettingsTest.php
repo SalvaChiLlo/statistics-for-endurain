@@ -28,15 +28,15 @@ class DaemonSettingsTest extends TestCase
     {
         $settings = DaemonSettings::fromArray([
             'cron' => [
-                'runStravaImportAndBuildApp' => ['expression' => '0 3 * * *', 'enabled' => true],
-                'gearMaintenanceNotification' => ['expression' => '0 4 * * *', 'enabled' => false],
+                'gearMaintenanceNotification' => ['expression' => '0 3 * * *', 'enabled' => true],
+                'appUpdateAvailableNotification' => ['expression' => '0 4 * * *', 'enabled' => false],
             ],
         ]);
 
         $this->assertEquals(
             [
                 CronAction::create(
-                    id: CronActionId::RUN_STRAVA_IMPORT_AND_BUILD_APP,
+                    id: CronActionId::GEAR_MAINTENANCE_NOTIFICATION,
                     expression: new \Cron\CronExpression('0 3 * * *'),
                 ),
             ],
@@ -61,13 +61,13 @@ class DaemonSettingsTest extends TestCase
     {
         $settings = DaemonSettings::fromArray([
             'cron' => [
-                'runStravaImportAndBuildApp' => ['enabled' => true],
+                'gearMaintenanceNotification' => ['enabled' => true],
             ],
         ]);
 
         $actions = iterator_to_array($settings->getConfiguredCronActions());
         $this->assertCount(1, $actions);
-        $this->assertSame('0 2 * * *', (string) $actions[0]->getExpression());
+        $this->assertSame('0 4 * * *', (string) $actions[0]->getExpression());
     }
 
     public function testItThrowsForAnInvalidCronExpression(): void
@@ -76,7 +76,7 @@ class DaemonSettingsTest extends TestCase
 
         DaemonSettings::fromArray([
             'cron' => [
-                'runStravaImportAndBuildApp' => ['expression' => 'not-a-cron', 'enabled' => true],
+                'gearMaintenanceNotification' => ['expression' => 'not-a-cron', 'enabled' => true],
             ],
         ]);
     }

@@ -6,6 +6,7 @@ namespace App\Tests\Console\Daemon;
 
 use App\Application\AppStatusChecker;
 use App\Application\Import\CalculateActivityMetrics\CalculateActivityMetrics;
+use App\Application\Import\DeleteActivitiesMarkedForDeletion\DeleteActivitiesMarkedForDeletion;
 use App\Application\Import\EndurainImport\DetectEndurainActivityChanges\DetectEndurainActivityChanges;
 use App\Application\Import\EndurainImport\ImportEndurainActivity\ImportEndurainActivity;
 use App\Console\Daemon\RunEndurainImportAndBuildAppConsoleCommand;
@@ -236,6 +237,70 @@ class RunEndurainImportAndBuildAppConsoleCommandTest extends ConsoleCommandTestC
         $commandTester->execute(['command' => $command->getName()]);
 
         $this->assertSame(Command::SUCCESS, $commandTester->getStatusCode());
+    }
+
+    public function testDispatchesDeleteActivitiesMarkedForDeletionWhenThereAreDeletions(): void
+    {
+        $this->endurain->expects($this->atLeastOnce())->method('getCurrentUserId')->willReturn(1);
+        $this->endurain->expects($this->atLeastOnce())->method('getActivities')->willReturn([['id' => 2]]);
+
+        // Only endurain-1 is locally imported and it's gone remotely, but not "everything"
+        // since findAllImportedFromEndurainApi() below returns a second, unrelated id that
+        // stays untouched, so the mass-deletion guard does not trigger.
+        $this->activityIdRepository
+            ->expects($this->atLeastOnce())
+            ->method('findAllImportedFromEndurainApi')
+            ->willReturn(ActivityIds::fromArray([
+                ActivityId::fromUnprefixed('endurain-1'),
+                ActivityId::fromUnprefixed('endurain-2'),
+            ]));
+
+        $this->activityRepository
+            ->expects($this->once())
+            ->method('markActivitiesForDeletion')
+            ->with(ActivityIds::fromArray([ActivityId::fromUnprefixed('endurain-1')]));
+
+        $command = $this->getCommandInApplication(RunEndurainImportAndBuildAppConsoleCommand::NAME);
+        $commandTester = new CommandTester($command);
+        $commandTester->execute(['command' => $command->getName()]);
+
+        $this->assertSame(Command::SUCCESS, $commandTester->getStatusCode());
+
+        $dispatchedCommandClasses = array_map(
+            static fn (object $command): string => $command::class,
+            $this->commandBus->getDispatchedCommands()
+        );
+        $this->assertContains(DeleteActivitiesMarkedForDeletion::class, $dispatchedCommandClasses);
+    }
+
+    public function testDeleteActivitiesMarkedForDeletionDispatchIsANoOpWhenThereAreNoDeletions(): void
+    {
+        $this->endurain->expects($this->atLeastOnce())->method('getCurrentUserId')->willReturn(1);
+        $this->endurain->expects($this->atLeastOnce())->method('getActivities')->willReturn([['id' => 1]]);
+
+        $this->activityIdRepository
+            ->expects($this->atLeastOnce())
+            ->method('findAllImportedFromEndurainApi')
+            ->willReturn(ActivityIds::fromArray([ActivityId::fromUnprefixed('endurain-1')]));
+
+        $this->activityRepository
+            ->expects($this->never())
+            ->method('markActivitiesForDeletion');
+
+        $command = $this->getCommandInApplication(RunEndurainImportAndBuildAppConsoleCommand::NAME);
+        $commandTester = new CommandTester($command);
+        $commandTester->execute(['command' => $command->getName()]);
+
+        $this->assertSame(Command::SUCCESS, $commandTester->getStatusCode());
+
+        // The command is still dispatched unconditionally (it queries for marked-for-deletion
+        // activities itself and no-ops when there are none), so the dispatch happens on every
+        // run regardless of whether this particular sync produced any deletions.
+        $dispatchedCommandClasses = array_map(
+            static fn (object $command): string => $command::class,
+            $this->commandBus->getDispatchedCommands()
+        );
+        $this->assertContains(DeleteActivitiesMarkedForDeletion::class, $dispatchedCommandClasses);
     }
 
     #[AllowMockObjectsWithoutExpectations]

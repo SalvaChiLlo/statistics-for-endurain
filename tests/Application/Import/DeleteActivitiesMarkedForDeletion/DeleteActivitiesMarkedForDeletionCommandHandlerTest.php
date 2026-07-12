@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Tests\Application\Import\StravaImport\DeleteActivitiesMarkedForDeletion;
+namespace App\Tests\Application\Import\DeleteActivitiesMarkedForDeletion;
 
-use App\Application\Import\StravaImport\DeleteActivitiesMarkedForDeletion\DeleteActivitiesMarkedForDeletion;
+use App\Application\Import\DeleteActivitiesMarkedForDeletion\DeleteActivitiesMarkedForDeletion;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\ActivityIdRepository;
 use App\Domain\Activity\ActivityIds;

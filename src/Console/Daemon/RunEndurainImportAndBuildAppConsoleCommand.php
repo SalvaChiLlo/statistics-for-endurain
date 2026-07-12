@@ -8,6 +8,7 @@ use App\Application\AppIsNotReady;
 use App\Application\AppStatusChecker;
 use App\Application\Build\RunBuild\RunBuild;
 use App\Application\Import\CalculateActivityMetrics\CalculateActivityMetrics;
+use App\Application\Import\DeleteActivitiesMarkedForDeletion\DeleteActivitiesMarkedForDeletion;
 use App\Application\Import\EndurainImport\DetectEndurainActivityChanges\DetectEndurainActivityChanges;
 use App\Application\Import\EndurainImport\ImportEndurainActivity\ImportEndurainActivity;
 use App\Domain\Activity\ActivityId;
@@ -35,10 +36,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * what's locally imported, import new activities (with streams/gear/polyline), mark
  * activities no longer present remotely for deletion, and rebuild the dashboard.
  *
- * Intentionally smaller in scope than RunStravaImportAndBuildAppConsoleCommand: no
- * rate-limit display, no segments/challenges import, no Strava-raw-payload processing
- * step. It shares the same import/build mutex so it never runs concurrently with a
- * Strava import/build.
+ * Intentionally smaller in scope than the old Strava daemon command: no rate-limit
+ * display, no segments/challenges import, no raw-payload processing step. It shares
+ * the same import/build mutex so it never runs concurrently with a file import/build.
  */
 #[WithMonologChannel('daemon')]
 #[WithMutex(lockName: LockName::IMPORT_DATA_OR_BUILD_APP)]
@@ -98,6 +98,7 @@ final class RunEndurainImportAndBuildAppConsoleCommand extends Command
             }
 
             $this->commandBus->dispatch(new CalculateActivityMetrics($output));
+            $this->commandBus->dispatch(new DeleteActivitiesMarkedForDeletion($output));
 
             $this->appStatusChecker->ensureIsReadyForBuild();
             $this->commandBus->dispatch(new RunBuild($output));

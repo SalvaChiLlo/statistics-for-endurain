@@ -23,7 +23,6 @@ use App\Application\Build\BuildRecordingDevices\BuildRecordingDevices;
 use App\Application\Build\BuildRewindHtml\BuildRewindHtml;
 use App\Application\Build\ConfigureAppColors\ConfigureAppColors;
 use App\Application\Build\ConfigureAppLocale\ConfigureAppLocale;
-use App\Application\Import\StravaImport\ImportGear\GearImportStatus;
 use App\Infrastructure\Console\ProgressBar;
 use App\Infrastructure\CQRS\Command\Bus\CommandBus;
 use App\Infrastructure\CQRS\Command\Command;
@@ -35,7 +34,6 @@ final readonly class RunBuildCommandHandler implements CommandHandler
     public function __construct(
         private CommandBus $commandBus,
         private AppStatusChecker $appStatusChecker,
-        private GearImportStatus $gearImportStatus,
         private Clock $clock,
     ) {
     }
@@ -46,12 +44,6 @@ final readonly class RunBuildCommandHandler implements CommandHandler
 
         $output = $command->getOutput();
         $this->appStatusChecker->ensureIsReadyForBuild();
-
-        if (!$this->gearImportStatus->isComplete()) {
-            $output->block('[WARNING] Some of your gear hasn’t been imported yet. This is most likely due to Strava API rate limits being reached. As a result, your gear statistics may currently be incomplete.
-
-This is not a bug, once all your activities have been imported, your gear statistics will update automatically and be complete.', null, 'fg=black;bg=yellow', ' ', true);
-        }
 
         $now = $this->clock->getCurrentDateTimeImmutable();
 

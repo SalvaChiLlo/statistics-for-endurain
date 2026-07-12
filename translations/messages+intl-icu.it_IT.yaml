@@ -162,8 +162,6 @@ Hikes: Escursioni
 'Ice Skate': 'Pattinaggio su ghiaccio'
 Id: ID
 Imperial: Imperial
-'Import data & build app': 'Import data & build app'
-'Imports new Strava activities and rebuilds the app.': 'Imports new Strava activities and rebuilds the app.'
 "In that time, I’ve covered {totalDistance}, that's {numberOfTripsAroundTheWorld} trips around the world 🌍 or {numberOfTripsToTheMoonPercent}% of the way to the moon 🌕, and climbed an elevation of {totalElevation} which is {timesMountEverest} times Mount Everest 🏔. All up that's {totalTimeRecorded} of moving time 🎉.": 'In questo periodo ho percorso {totalDistance}, pari a {numberOfTripsAroundTheWorld} giri del mondo 🌍 oppure al {numberOfTripsToTheMoonPercent}% del tragitto verso la luna 🌕, e accumulato {totalElevation} di dislivello, cioè {timesMountEverest} volte il Monte Everest 🏔. In totale fanno {totalTimeRecorded} di tempo in movimento 🎉.'
 'Individual thresholds vary based on fitness level.': 'Le soglie individuali variano in base al livello di forma.'
 'Inline Skate': 'Pattinaggio in linea'

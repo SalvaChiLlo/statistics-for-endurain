@@ -19,20 +19,6 @@ use App\Tests\Infrastructure\FileSystem\UnwritablePermissionChecker;
 
 class AppStatusCheckerTest extends ContainerTestCase
 {
-    public function testEnsureIsReadyForStravaImportPasses(): void
-    {
-        $this->expectNotToPerformAssertions();
-
-        $this->buildChecker(new SuccessfulPermissionChecker())->ensureIsReadyForStravaImport();
-    }
-
-    public function testEnsureIsReadyForStravaImportThrowsWhenFileSystemIsNotWritable(): void
-    {
-        $this->expectExceptionObject(AppIsNotReady::becauseFileSystemIsNotWritable());
-
-        $this->buildChecker(new UnwritablePermissionChecker())->ensureIsReadyForStravaImport();
-    }
-
     public function testEnsureIsReadyForEndurainImportPasses(): void
     {
         $this->expectNotToPerformAssertions();

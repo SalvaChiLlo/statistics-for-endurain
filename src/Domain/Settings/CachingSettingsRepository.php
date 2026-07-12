@@ -12,7 +12,6 @@ final class CachingSettingsRepository implements SettingsRepository
     private array $findCache = [];
     private ?GeneralSettings $general = null;
     private ?AppearanceSettings $appearanceSettings = null;
-    private ?ImportSettings $importSettings = null;
     private ?MetricsSettings $metricsSettings = null;
     private ?ZwiftSettings $zwiftSettings = null;
     private ?IntegrationsSettings $integrationsSettings = null;
@@ -36,7 +35,6 @@ final class CachingSettingsRepository implements SettingsRepository
         $this->findCache = [];
         $this->general = null;
         $this->appearanceSettings = null;
-        $this->importSettings = null;
         $this->metricsSettings = null;
         $this->zwiftSettings = null;
         $this->integrationsSettings = null;
@@ -51,11 +49,6 @@ final class CachingSettingsRepository implements SettingsRepository
     public function appearance(): AppearanceSettings
     {
         return $this->appearanceSettings ??= $this->settingsRepository->appearance();
-    }
-
-    public function import(): ImportSettings
-    {
-        return $this->importSettings ??= $this->settingsRepository->import();
     }
 
     public function metrics(): MetricsSettings

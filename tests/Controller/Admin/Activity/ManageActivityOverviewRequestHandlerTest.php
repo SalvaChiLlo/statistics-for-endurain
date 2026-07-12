@@ -5,7 +5,6 @@ namespace App\Tests\Controller\Admin\Activity;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
-use App\Domain\Import\ImportMode;
 use App\Infrastructure\ValueObject\Time\SerializableDateTime;
 use App\Tests\Controller\Admin\AdminWebTestCase;
 use App\Tests\Domain\Activity\ActivityBuilder;
@@ -65,15 +64,10 @@ class ManageActivityOverviewRequestHandlerTest extends AdminWebTestCase
         $this->assertCount(25, $crawler->filter('table.data-table tbody tr'));
         $this->assertCount(1, $crawler->filter('[aria-label="Go to next page"]'));
         $this->assertStringContainsString('of 30', $crawler->filter('body')->text());
-
-        // The default import mode in tests is the Strava API, where activities can't be deleted.
-        $this->assertCount(0, $crawler->filter('table.data-table tbody a[title="Delete"]'));
     }
 
     public function testShowsDeleteLinksInFilesMode(): void
     {
-        $this->withImportMode(ImportMode::FILES);
-
         $this->seedActivities(3);
         $this->client->loginUser($this->adminUser());
 

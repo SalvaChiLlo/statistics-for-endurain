@@ -65,29 +65,6 @@ class UpdateSettingsCommandHandlerTest extends ContainerTestCase
         $this->assertSame('1', (string) $this->keyValueStore->find(Key::FORCE_REBUILD));
     }
 
-    public function testItUpdatesImportSettingsAndFlagsForceRebuild(): void
-    {
-        $data = [
-            'numberOfNewActivitiesToProcessPerImport' => 100,
-            'sportTypesToImport' => ['Ride'],
-            'activityVisibilitiesToImport' => ['everyone'],
-            'skipActivitiesRecordedBefore' => '2023-09-01',
-            'activitiesToSkipDuringImport' => ['123'],
-            'webhooks' => [
-                'enabled' => true,
-                'verifyToken' => 'el-token',
-            ],
-        ];
-
-        $this->commandBus->dispatch(UpdateSettings::fromPayload([
-            'group' => SettingsGroup::IMPORT->value,
-            'data' => $data,
-        ]));
-
-        $this->assertSame($data, $this->settingsRepository->find(SettingsGroup::IMPORT));
-        $this->assertSame('1', (string) $this->keyValueStore->find(Key::FORCE_REBUILD));
-    }
-
     public function testItUpdatesMetricsSettingsAndFlagsForceRebuild(): void
     {
         $data = [
@@ -180,8 +157,7 @@ class UpdateSettingsCommandHandlerTest extends ContainerTestCase
     {
         $data = [
             'cron' => [
-                'runStravaImportAndBuildApp' => ['expression' => '0 3 * * *', 'enabled' => true],
-                'gearMaintenanceNotification' => ['expression' => '0 4 * * *', 'enabled' => false],
+                'gearMaintenanceNotification' => ['expression' => '0 4 * * *', 'enabled' => true],
                 'appUpdateAvailableNotification' => ['expression' => '0 5 * * *', 'enabled' => false],
             ],
         ];
@@ -203,7 +179,7 @@ class UpdateSettingsCommandHandlerTest extends ContainerTestCase
             'group' => SettingsGroup::DAEMON->value,
             'data' => [
                 'cron' => [
-                    'runStravaImportAndBuildApp' => ['expression' => 'not-a-cron', 'enabled' => true],
+                    'gearMaintenanceNotification' => ['expression' => 'not-a-cron', 'enabled' => true],
                 ],
             ],
         ]);

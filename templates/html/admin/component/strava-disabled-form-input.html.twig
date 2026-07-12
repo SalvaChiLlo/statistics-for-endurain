@@ -1,4 +1,5 @@
-{% set disabled = importMode.isStravaApi() and (isReadOnly ?? true) %}
+{# Strava API import mode has been removed: fields are never disabled here anymore. #}
+{% set disabled = false %}
 <div>
     <label for="{{ for }}" class="flex items-center gap-1.5">
         {{ label }}

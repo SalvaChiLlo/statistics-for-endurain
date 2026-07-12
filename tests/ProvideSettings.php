@@ -67,21 +67,6 @@ trait ProvideSettings
             ])),
         ));
 
-        $keyValueStore->save(KeyValue::fromState(
-            SettingsGroup::IMPORT->keyValueKey(),
-            Value::fromString(Json::encode([
-                'numberOfNewActivitiesToProcessPerImport' => 250,
-                'sportTypesToImport' => [],
-                'activityVisibilitiesToImport' => [],
-                'skipActivitiesRecordedBefore' => null,
-                'activitiesToSkipDuringImport' => ['skip'],
-                'webhooks' => [
-                    'enabled' => true,
-                    'verifyToken' => 'ffc26d52-d3ff-4797-a2b7-780a593a3547',
-                ],
-            ])),
-        ));
-
         // Baseline the whole suite gets today from config/app/test/config.yaml, normalized to camelCase.
         $keyValueStore->save(KeyValue::fromState(
             SettingsGroup::ZWIFT->keyValueKey(),

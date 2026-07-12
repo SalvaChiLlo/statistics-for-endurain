@@ -13,6 +13,12 @@
         }
     },
     {
+        "commandName": "App\\Application\\Import\\DeleteActivitiesMarkedForDeletion\\DeleteActivitiesMarkedForDeletion",
+        "payload": {
+            "output": {}
+        }
+    },
+    {
         "commandName": "App\\Application\\Build\\RunBuild\\RunBuild",
         "payload": {
             "output": {}
