@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Console;
 
 use App\Console\Daemon\RunFileImportAndBuildAppConsoleCommand;
-use App\Console\Daemon\RunStravaImportAndBuildAppConsoleCommand;
-use App\Domain\Import\ImportMode;
 use App\Infrastructure\Console\ProvideConsoleIntro;
 use App\Infrastructure\Logging\LoggableConsoleOutput;
 use Psr\Log\LoggerInterface;
@@ -18,15 +16,14 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-/** @deprecated Use app:cron:run-file-import and app:cron:run-strava-import */
-#[AsCommand(name: 'app:data:import|app:data:build|app:strava:import-data|app:strava:build-files', description: 'Import and build activity data')]
+/** @deprecated Use app:cron:run-file-import */
+#[AsCommand(name: 'app:data:import|app:data:build', description: 'Import and build activity data')]
 final class ImportDataAndBuildAppConsoleCommand extends Command
 {
     use ProvideConsoleIntro;
 
     public function __construct(
         private readonly LoggerInterface $logger,
-        private readonly ImportMode $importMode,
     ) {
         parent::__construct();
     }
@@ -40,19 +37,14 @@ final class ImportDataAndBuildAppConsoleCommand extends Command
         $usedConsoleCommand = $input->getFirstArgument();
         assert($application instanceof Application);
 
-        $commandToDelegateTo = match ($this->importMode) {
-            ImportMode::STRAVA_API => RunStravaImportAndBuildAppConsoleCommand::NAME,
-            ImportMode::FILES => RunFileImportAndBuildAppConsoleCommand::NAME,
-        };
-
         $optionToUse = match ($usedConsoleCommand) {
-            'app:strava:import-data', 'app:data:import' => RunStravaImportAndBuildAppConsoleCommand::IMPORT_OPTION,
-            'app:strava:build-files', 'app:data:build' => RunStravaImportAndBuildAppConsoleCommand::BUILD_OPTION,
+            'app:data:import' => RunFileImportAndBuildAppConsoleCommand::IMPORT_OPTION,
+            'app:data:build' => RunFileImportAndBuildAppConsoleCommand::BUILD_OPTION,
             default => throw new \RuntimeException(sprintf('Unknown command "%s"', $usedConsoleCommand)),
         };
 
         $arrayInput = [
-            'command' => $commandToDelegateTo,
+            'command' => RunFileImportAndBuildAppConsoleCommand::NAME,
             '--'.$optionToUse => true,
         ];
 

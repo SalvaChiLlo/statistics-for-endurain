@@ -6,17 +6,16 @@ namespace App\Domain\Import;
 
 enum ImportMode: string
 {
-    case STRAVA_API = 'stravaApi';
     case FILES = 'files';
 
-    public function isStravaApi(): bool
-    {
-        return self::STRAVA_API === $this;
-    }
-
+    /**
+     * FILES is currently the only case, so this is always true. Kept as a method
+     * (rather than inlined at call sites) since it reads better at usage sites and
+     * is a natural extension point should a second case ever be reintroduced.
+     */
     public function isFiles(): bool
     {
-        return self::FILES === $this;
+        return true;
     }
 
     public static function fromServerVar(): self

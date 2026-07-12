@@ -10,7 +10,6 @@ enum SettingsGroup: string
 {
     case GENERAL = 'general';
     case APPEARANCE = 'appearance';
-    case IMPORT = 'import';
     case METRICS = 'metrics';
     case ZWIFT = 'zwift';
     case INTEGRATIONS = 'integrations';
@@ -21,7 +20,6 @@ enum SettingsGroup: string
         return match ($this) {
             self::GENERAL => Key::SETTINGS_GENERAL,
             self::APPEARANCE => Key::SETTINGS_APPEARANCE,
-            self::IMPORT => Key::SETTINGS_IMPORT,
             self::METRICS => Key::SETTINGS_METRICS,
             self::ZWIFT => Key::SETTINGS_ZWIFT,
             self::INTEGRATIONS => Key::SETTINGS_INTEGRATIONS,
@@ -37,7 +35,6 @@ enum SettingsGroup: string
         return match ($this) {
             self::GENERAL => GeneralSettings::fromArray($data),
             self::APPEARANCE => AppearanceSettings::fromArray($data),
-            self::IMPORT => ImportSettings::fromArray($data),
             self::METRICS => MetricsSettings::fromArray($data),
             self::ZWIFT => ZwiftSettings::fromArray($data),
             self::INTEGRATIONS => IntegrationsSettings::fromArray($data),

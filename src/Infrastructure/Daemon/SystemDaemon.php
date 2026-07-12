@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Infrastructure\Daemon;
 
 use App\Console\Daemon\RunFileImportAndBuildAppConsoleCommand;
-use App\Console\Daemon\RunStravaImportAndBuildAppConsoleCommand;
 use App\Domain\Import\ImportMode;
 use App\Domain\Settings\SettingsRepository;
 use App\Infrastructure\Console\ConsoleOutputAware;
@@ -103,31 +102,6 @@ final class SystemDaemon implements Daemon
                         clock: $this->clock,
                         output: $this->getConsoleOutput(),
                         command: sprintf('bin/console %s', RunFileImportAndBuildAppConsoleCommand::NAME)
-                    );
-                    $process->start();
-
-                    return resolve(true);
-                }
-            );
-        }
-
-        if ($this->importMode->isStravaApi()) {
-            $extraConfiguredCronActionsOutput[] = sprintf('<info> - buildApp: %s</info>', self::CRON_EVERY_5_MINUTES);
-            $actions[] = new Action(
-                key: 'buildApp',
-                mutexTtl: 300,
-                expression: self::CRON_EVERY_5_MINUTES,
-                performer: function (): PromiseInterface {
-                    $process = new CronProcess(
-                        cronActionId: 'buildApp',
-                        clock: $this->clock,
-                        output: $this->getConsoleOutput(),
-                        command: sprintf(
-                            'bin/console %s --%s --%s',
-                            RunStravaImportAndBuildAppConsoleCommand::NAME,
-                            RunStravaImportAndBuildAppConsoleCommand::BUILD_OPTION,
-                            RunStravaImportAndBuildAppConsoleCommand::IF_REQUIRED_OPTION,
-                        )
                     );
                     $process->start();
 

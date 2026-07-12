@@ -41,11 +41,9 @@ https://github.com/user-attachments/assets/81554f32-31be-4899-afd6-681ce3e7bcb6
 * **Custom gear** - Add custom gear setups  ([instructions](https://docs.getsfs.app/#/configuration/custom-gear))
 * **Maintenance Tracking** - Keep tabs on gear wear and tear ([instructions](https://docs.getsfs.app/#/configuration/gear-maintenance))
 * **Eddington** - For your distance milestones
-* **Segments & Efforts** - Dive into your segment history and times
 * **Heatmap** - Visualize where you’ve been active the most
 * **Milestones** - A timeline view of your key achievements and milestones over time
 * **Rewind** - A fun way to look back on your year in motion
-* **Challenges** - See which Strava challenges you've conquered
 * **Activity Photos** - Relive your moments with a photo archive
 * **AI workout assistant** - Get personalized workout suggestions and insights powered by AI
 * **User badges** - Shareable badges you can embed on your website, blog, or forum profiles
@@ -53,8 +51,13 @@ https://github.com/user-attachments/assets/81554f32-31be-4899-afd6-681ce3e7bcb6
 
 ## 📖 Documentation
 
-Start off by showing some ❤️ and give this repo a star. 
-When you are done, head over to the [documentation](https://docs.getsfs.app) to get started with the installation and configuration of Statistics for Strava.
+Start off by showing some ❤️ and give this repo a star.
+
+This is an Endurain-only fork: it has no Strava OAuth/API integration and syncs exclusively against a self-hosted
+[Endurain](https://github.com/joaovitoriasilva/endurain) instance, using a dedicated service-account login rather
+than the OAuth flow. Configure `ENDURAIN_URL`, `ENDURAIN_USERNAME` and `ENDURAIN_PASSWORD` in your `.env` file to
+point the app at your Endurain instance and account, then run the daemon (or `bin/console app:cron:run-endurain-import`)
+to sync activities. Local FIT/GPX/TCX file import remains available independently via `IMPORT_MODE=files`.
 
 ## 🔁 Migrating from statistics-for-strava
 

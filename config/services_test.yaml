@@ -6,7 +6,7 @@
 parameters:
     # Default import mode for the test suite. Individual tests can override this by
     # setting the IMPORT_MODE env var before the kernel boots (see e.g. FileUploadRequestHandlerTest).
-    env(IMPORT_MODE): 'stravaApi'
+    env(IMPORT_MODE): 'files'
 
 services:
     # default configuration for services in *this* file
@@ -19,9 +19,6 @@ services:
         autoconfigure: false
         factory: [ null, 'from' ]
         arguments: ['%env(string:IMPORT_MODE)%']
-
-    App\Domain\Strava\Strava:
-        class: App\Tests\Domain\Strava\SpyStrava
 
     App\Infrastructure\Time\Clock\Clock:
         factory: [ 'App\Tests\Infrastructure\Time\Clock\PausedClock', 'fromString' ]

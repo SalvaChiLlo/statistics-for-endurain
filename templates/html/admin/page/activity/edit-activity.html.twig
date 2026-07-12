@@ -1,7 +1,8 @@
 {% extends "html/admin/page/template.html.twig" %}
 {% block main %}
     {% autoescape false %}
-    {% set isImportedFromStrava = importMode.isStravaApi() %}
+    {# Strava API import mode has been removed: activities are never treated as Strava-imported anymore. #}
+    {% set isImportedFromStrava = false %}
     <div class="modal-like-form">
         <div class="w-full max-w-3xl overflow-y-auto p-6 bg-white border border-gray-200 rounded-lg shadow-xl">
             <div class="flex items-center justify-between mb-4">

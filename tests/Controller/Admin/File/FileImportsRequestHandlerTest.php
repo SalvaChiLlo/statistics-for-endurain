@@ -19,22 +19,6 @@ class FileImportsRequestHandlerTest extends AdminWebTestCase
         $this->assertResponseRedirects('/admin/login');
     }
 
-    public function testRendersTheGatedPanelWhenNotInFileImportMode(): void
-    {
-        $this->withImportMode(ImportMode::STRAVA_API);
-        $this->client->loginUser($this->adminUser());
-
-        $crawler = $this->client->request('GET', '/admin/file-imports');
-
-        $this->assertResponseIsSuccessful();
-        $gatedPanel = $crawler->filter('[role="alert"][type="gated-panel"]');
-        $this->assertCount(1, $gatedPanel);
-        $this->assertStringContainsString(
-            'File imports are only available in file import mode',
-            $gatedPanel->text()
-        );
-    }
-
     public function testRendersTheTableWithoutGatedPanelInFileImportMode(): void
     {
         $this->withImportMode(ImportMode::FILES);

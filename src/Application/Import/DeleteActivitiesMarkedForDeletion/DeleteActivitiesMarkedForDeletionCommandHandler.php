@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Application\Import\StravaImport\DeleteActivitiesMarkedForDeletion;
+namespace App\Application\Import\DeleteActivitiesMarkedForDeletion;
 
 use App\Domain\Activity\ActivityIdRepository;
 use App\Domain\Activity\ActivitySummaryRepository;

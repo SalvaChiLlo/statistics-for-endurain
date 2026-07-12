@@ -34,7 +34,7 @@ class ConfiguredCronActionsTest extends TestCase
                     'enabled' => true,
                 ],
                 [
-                    'action' => 'runStravaImportAndBuildApp',
+                    'action' => 'appUpdateAvailableNotification',
                     'expression' => '* * * * *',
                     'enabled' => false,
                 ],

@@ -6,7 +6,6 @@ use App\Application\AppStatusChecker;
 use App\Application\AppUrl;
 use App\Application\RebuildStatus;
 use App\Console\Daemon\RunFileImportAndBuildAppConsoleCommand;
-use App\Console\Daemon\RunStravaImportAndBuildAppConsoleCommand;
 use App\Console\ImportDataAndBuildAppConsoleCommand;
 use App\Domain\Activity\ActivityIdRepository;
 use App\Domain\Activity\ActivityRepository;
@@ -14,7 +13,6 @@ use App\Domain\Activity\ActivityWithRawData;
 use App\Domain\Import\ImportMode;
 use App\Domain\Import\WatchDirectory;
 use App\Domain\Settings\SettingsRepository;
-use App\Domain\Strava\Strava;
 use App\Infrastructure\KeyValue\KeyValueStore;
 use App\Infrastructure\Mutex\LockName;
 use App\Infrastructure\Mutex\Mutex;
@@ -27,7 +25,6 @@ use App\Tests\Infrastructure\Time\ResourceUsage\FixedResourceUsage;
 use League\Flysystem\FilesystemOperator;
 use Psr\Log\NullLogger;
 use Spatie\Snapshots\MatchesSnapshots;
-use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -40,60 +37,28 @@ class ImportDataAndBuildAppConsoleCommandTest extends ConsoleCommandTestCase
     private ImportDataAndBuildAppConsoleCommand $command;
     private SpyCommandBus $spyCommandBus;
 
-    public function testDelegatesImportToStravaImport(): void
-    {
-        $command = $this->getCommandInApplication('app:strava:import-data');
-        $command->getApplication()->addCommand($this->buildStravaImportCommand());
-
-        $commandTester = new CommandTester($command);
-        $commandTester->execute(['command' => 'app:strava:import-data']);
-
-        $this->assertMatchesJsonSnapshot(Json::encode($this->spyCommandBus->getDispatchedCommands()));
-    }
-
-    public function testDelegatesBuildToStravaImport(): void
-    {
-        $command = $this->getCommandInApplication('app:strava:build-files');
-        $command->getApplication()->addCommand($this->buildStravaImportCommand());
-
-        $commandTester = new CommandTester($command);
-        $commandTester->execute(['command' => 'app:strava:build-files']);
-
-        $this->assertMatchesJsonSnapshot(Json::encode($this->spyCommandBus->getDispatchedCommands()));
-    }
-
-    public function testDelegatesImportToFileImportInFileMode(): void
+    public function testDelegatesImportToFileImport(): void
     {
         $watchStorage = $this->getContainer()->get('default.storage');
         \assert($watchStorage instanceof FilesystemOperator);
         $watchStorage->deleteDirectory('watch');
         $watchStorage->write('watch/ride.fit', 'raw-fit-bytes');
 
-        $command = new ImportDataAndBuildAppConsoleCommand(
-            new NullLogger(),
-            ImportMode::FILES,
-        );
-        $application = new Application();
-        $application->addCommand($command);
-        $application->addCommand($this->buildFileImportCommand());
+        $command = $this->getCommandInApplication('app:data:import');
+        $command->getApplication()->addCommand($this->buildFileImportCommand());
 
-        $commandTester = new CommandTester($application->find('app:data:import'));
+        $commandTester = new CommandTester($command);
         $commandTester->execute(['command' => 'app:data:import']);
 
         $this->assertMatchesJsonSnapshot(Json::encode($this->spyCommandBus->getDispatchedCommands()));
     }
 
-    public function testDelegatesBuildToFileImportInFileMode(): void
+    public function testDelegatesBuildToFileImport(): void
     {
-        $command = new ImportDataAndBuildAppConsoleCommand(
-            new NullLogger(),
-            ImportMode::FILES,
-        );
-        $application = new Application();
-        $application->addCommand($command);
-        $application->addCommand($this->buildFileImportCommand());
+        $command = $this->getCommandInApplication('app:data:build');
+        $command->getApplication()->addCommand($this->buildFileImportCommand());
 
-        $commandTester = new CommandTester($application->find('app:data:build'));
+        $commandTester = new CommandTester($command);
         $commandTester->execute(['command' => 'app:data:build']);
 
         $this->assertMatchesJsonSnapshot(Json::encode($this->spyCommandBus->getDispatchedCommands()));
@@ -111,32 +76,6 @@ class ImportDataAndBuildAppConsoleCommandTest extends ConsoleCommandTestCase
 
         $this->command = new ImportDataAndBuildAppConsoleCommand(
             new NullLogger(),
-            ImportMode::STRAVA_API,
-        );
-    }
-
-    private function buildStravaImportCommand(): RunStravaImportAndBuildAppConsoleCommand
-    {
-        return new RunStravaImportAndBuildAppConsoleCommand(
-            commandBus: $this->spyCommandBus = new SpyCommandBus(),
-            resourceUsage: new FixedResourceUsage(),
-            strava: $this->getContainer()->get(Strava::class),
-            logger: new NullLogger(),
-            mutex: new Mutex(
-                connection: $this->getConnection(),
-                clock: PausedClock::fromString(self::TODAY),
-                lockName: LockName::IMPORT_DATA_OR_BUILD_APP,
-            ),
-            appStatusChecker: new AppStatusChecker(
-                $this->getContainer()->get(SettingsRepository::class),
-                $this->getContainer()->get(ActivityIdRepository::class),
-                new SuccessfulPermissionChecker(),
-            ),
-            appUrl: AppUrl::fromString('http://localhost'),
-            importMode: ImportMode::STRAVA_API,
-            keyValueStore: $this->getContainer()->get(KeyValueStore::class),
-            rebuildStatus: $this->getContainer()->get(RebuildStatus::class),
-            clock: PausedClock::fromString(self::TODAY),
         );
     }
 

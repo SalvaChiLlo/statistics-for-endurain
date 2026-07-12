@@ -9,7 +9,6 @@ use App\Domain\Settings\AthleteHasNotBeenConfigured;
 use App\Domain\Settings\CachingSettingsRepository;
 use App\Domain\Settings\DaemonSettings;
 use App\Domain\Settings\GeneralSettings;
-use App\Domain\Settings\ImportSettings;
 use App\Domain\Settings\IntegrationsSettings;
 use App\Domain\Settings\MetricsSettings;
 use App\Domain\Settings\SettingsGroup;
@@ -37,7 +36,6 @@ class CachingSettingsRepositoryTest extends TestCase
     {
         yield 'general' => ['general', GeneralSettings::fromArray(['athlete' => ['birthday' => '1989-08-14', 'maxHeartRateFormula' => 'fox']]), fn (SettingsRepository $r) => $r->general()];
         yield 'appearance' => ['appearance', AppearanceSettings::fromArray(null), fn (SettingsRepository $r) => $r->appearance()];
-        yield 'import' => ['import', ImportSettings::fromArray(null), fn (SettingsRepository $r) => $r->import()];
         yield 'metrics' => ['metrics', MetricsSettings::fromArray(null), fn (SettingsRepository $r) => $r->metrics()];
         yield 'zwift' => ['zwift', ZwiftSettings::fromArray(null), fn (SettingsRepository $r) => $r->zwift()];
         yield 'integrations' => ['integrations', IntegrationsSettings::fromArray(null), fn (SettingsRepository $r) => $r->integrations()];

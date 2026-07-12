@@ -50,7 +50,6 @@
     {% if isActiveNavItem({'/admin/settings': false}) %}
         {% set inGeneral = isActiveNavItem({'/admin/settings/general': false}) %}
         {% set inAppearance = isActiveNavItem({'/admin/settings/appearance': false}) %}
-        {% set inImport = isActiveNavItem({'/admin/settings/import': false}) %}
         {% set inMetrics = isActiveNavItem({'/admin/settings/metrics': false}) %}
         {% set inZwift = isActiveNavItem({'/admin/settings/zwift': false}) %}
         {% set inIntegrations = isActiveNavItem({'/admin/settings/integrations': false}) %}
@@ -76,13 +75,6 @@
                         {{ "Dashboard"|trans }}
                     </a>
                 </li>
-                {% if importMode.isStravaApi() %}
-                    <li>
-                        <a href="{{ relativeUrl(path('admin_settings', {'group': 'import'})) }}" {{ inImport ? 'aria-selected="true"' : '' }}>
-                            {{ "Strava import"|trans({}, 'admin') }}
-                        </a>
-                    </li>
-                {% endif %}
                 <li>
                     <a href="{{ relativeUrl(path('admin_settings', {'group': 'metrics'})) }}" {{ inMetrics ? 'aria-selected="true"' : '' }}>
                         {{ "Metrics"|trans({}, 'admin') }}

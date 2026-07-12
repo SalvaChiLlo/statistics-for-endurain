@@ -17,25 +17,6 @@ class FileUploadRequestHandlerTest extends AdminWebTestCase
     }
 
     #[DataProvider('provideAdminPaths')]
-    public function testRendersTheGatedPanelWhenNotInFileImportMode(string $path): void
-    {
-        $this->withImportMode(ImportMode::STRAVA_API);
-        $this->client->loginUser($this->adminUser());
-
-        $crawler = $this->client->request('GET', $path);
-
-        $this->assertResponseIsSuccessful();
-        $this->assertStringContainsString('Upload activity files', $crawler->filter('body')->text());
-
-        $gatedPanel = $crawler->filter('[role="alert"][type="gated-panel"]');
-        $this->assertCount(1, $gatedPanel);
-        $this->assertStringContainsString(
-            'File upload is only available in file import mode',
-            $gatedPanel->text()
-        );
-    }
-
-    #[DataProvider('provideAdminPaths')]
     public function testDoesNotRenderTheGatedPanelInFileImportMode(string $path): void
     {
         $this->withImportMode(ImportMode::FILES);

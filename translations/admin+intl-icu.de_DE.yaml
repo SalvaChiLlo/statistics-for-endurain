@@ -3,12 +3,10 @@ AI: AI
 AM/PM: AM/PM
 'API key': 'API key'
 'Activities excluded from peak power outputs': 'Activities excluded from peak power outputs'
-'Activities to skip during import': 'Activities to skip during import'
 'Activities will appear here once they are imported.': 'Aktivitäten werden hier angezeigt, sobald sie importiert wurden.'
 'Activity ID': 'Activity ID'
 'Activity IDs to exclude when calculating peak power outputs.': 'Activity IDs to exclude when calculating peak power outputs.'
 'Activity management': Aktivitätenverwaltung
-'Activity visibilities to import': 'Activity visibilities to import'
 'Add Eddington': 'Add Eddington'
 'Add FTP': 'Add FTP'
 'Add a component to start tracking maintenance.': 'Füge eine Komponente hinzu, um mit der Wartungsverfolgung zu beginnen.'
@@ -57,7 +55,6 @@ Configure: Configure
 'Configure the Eddington numbers to calculate. You can show up to two in the navigation bar and up to two in the dashboard widget.': 'Configure the Eddington numbers to calculate. You can show up to two in the navigation bar and up to two in the dashboard widget.'
 'Configure {widget}': 'Configure {widget}'
 'Configured via an environment variable and cannot be changed here.': 'Configured via an environment variable and cannot be changed here.'
-'Configured via environment variables and cannot be changed here.': 'Configured via environment variables and cannot be changed here.'
 'Cron expression': 'Cron expression'
 "Cron expression specifying when the action should run, e.g. '0 14 * * *' runs every day at 14:00. See crontab.guru for help.": "Cron expression specifying when the action should run, e.g. '0 14 * * *' runs every day at 14:00. See crontab.guru for help."
 Daemon: Daemon
@@ -113,7 +110,6 @@ General: General
 'Ignore retired gear': 'Ausgemusterte Ausrüstung ignorieren'
 Image: Bild
 Images: Bilder
-Import: Import
 'Imported files will appear here once you upload them.': 'Importierte Dateien werden hier angezeigt, sobald du sie hochlädst.'
 'Imported from Strava': 'Von Strava importiert'
 'Include retired gear': 'Include retired gear'
@@ -122,8 +118,6 @@ Integrations: Integrations
 'Invalid CSRF token.': 'Invalid CSRF token.'
 Label: Label
 'Last name': 'Last name'
-'Leave all unchecked to import every sport type. ⚠️ Restricting this after activities have been imported deletes activities of excluded sport types.': 'Leave all unchecked to import every sport type. ⚠️ Restricting this after activities have been imported deletes activities of excluded sport types.'
-'Leave all unchecked to import every visibility. ⚠️ Restricting this after activities have been imported deletes activities of excluded visibilities.': 'Leave all unchecked to import every visibility. ⚠️ Restricting this after activities have been imported deletes activities of excluded visibilities.'
 'Leave empty to include all sport types.': 'Leave empty to include all sport types.'
 Locale: Locale
 Log: Log
@@ -148,7 +142,6 @@ Model: Model
 'Notification services': 'Notification services'
 'Number of activities to display': 'Number of activities to display'
 'Number of milestones to display': 'Number of milestones to display'
-'Number of new activities to process per import': 'Number of new activities to process per import'
 'Number of widgets of this type you already have configured.': 'Number of widgets of this type you already have configured.'
 'Only required for the Azure OpenAI provider.': 'Only required for the Azure OpenAI provider.'
 'Only required for the Ollama provider.': 'Only required for the Ollama provider.'
@@ -157,7 +150,6 @@ Model: Model
 'Optional link to your profile picture, shown in the nav bar. A square image is recommended. Leave empty to disable.': 'Optional link to your profile picture, shown in the nav bar. A square image is recommended. Leave empty to disable.'
 'Optional subtitle': 'Optional subtitle'
 'Optional subtitle to display in the navbar. Useful for distinguishing between multiple instances of the app. Leave empty to disable.': 'Optional subtitle to display in the navbar. Useful for distinguishing between multiple instances of the app. Leave empty to disable.'
-'Optional. Any activity recorded before this date will not be imported. Leave empty to disable. ⚠️ Changing this after activities have been imported will delete activities recorded before this date.': 'Optional. Any activity recorded before this date will not be imported. Leave empty to disable. ⚠️ Changing this after activities have been imported will delete activities recorded before this date.'
 'Optional. Leave empty to always apply this goal.': 'Optional. Leave empty to always apply this goal.'
 'Optional. Your current Zwift level (1 or higher). Leave empty to hide the Zwift badge.': 'Optional. Your current Zwift level (1 or higher). Leave empty to hide the Zwift badge.'
 'Optional. Your current Zwift racing score (between 0 and 1000).': 'Optional. Your current Zwift racing score (between 0 and 1000).'
@@ -213,20 +205,11 @@ Settings: Settings
 'Sign in to the admin panel': 'Im Adminbereich anmelden'
 'Sign out': Abmelden
 'Signing in...': 'Anmeldung läuft...'
-'Skip activities recorded before': 'Skip activities recorded before'
 Skipped: Skipped
 Source: Quelle
 'Sport type': Sportart
 'Sport types sorting order': 'Sport types sorting order'
-'Sport types to import': 'Sport types to import'
 'Sport types to include': 'Sport types to include'
-'Strava API credentials.': 'Strava API credentials.'
-'Strava API has rate limits, so we cap the number of new activities processed per import. 250 is a safe number.': 'Strava API has rate limits, so we cap the number of new activities processed per import. 250 is a safe number.'
-'Strava activity IDs to skip during import.': 'Strava activity IDs to skip during import.'
-'Strava client ID': 'Strava client ID'
-'Strava client secret': 'Strava client secret'
-'Strava import': 'Strava import'
-'Strava refresh token': 'Strava refresh token'
 Subtitle: Subtitle
 Success: Erfolgreich
 'Supported types': 'Unterstützte Typen'

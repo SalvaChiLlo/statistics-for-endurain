@@ -6,7 +6,6 @@ use App\Application\AppIsNotReady;
 use App\Application\AppStatusChecker;
 use App\Application\Build\RunBuild\RunBuild;
 use App\Application\Build\RunBuild\RunBuildCommandHandler;
-use App\Application\Import\StravaImport\ImportGear\GearImportStatus;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
@@ -56,25 +55,6 @@ class RunBuildCommandHandlerTest extends ContainerTestCase
         $this->assertMatchesJsonSnapshot(Json::encode($this->commandBus->getDispatchedCommands()));
     }
 
-    public function testHandleWhenNotAllGearHasBeenImportedYet(): void
-    {
-        $this->getContainer()->get(ActivityRepository::class)->add(ActivityWithRawData::fromState(
-            ActivityBuilder::fromDefaults()
-                ->withActivityId(ActivityId::fromUnprefixed(4))
-                ->withGearId(GearId::fromUnprefixed(4))
-                ->build(),
-            [
-                'gear_id' => '4',
-            ]
-        ));
-
-        $output = new SpyOutput();
-        $this->buildAppCommandHandler->handle(new RunBuild(
-            output: new SymfonyStyle(new StringInput('input'), $output),
-        ));
-        $this->assertStringContainsString('[WARNING] Some of your gear hasn’t been imported yet', $output);
-    }
-
     public function testHandleWhenNoActivitiesHaveBeenImported(): void
     {
         $this->expectExceptionObject(AppIsNotReady::becauseNoActivitiesHaveBeenImportedYet());
@@ -91,7 +71,6 @@ class RunBuildCommandHandlerTest extends ContainerTestCase
         $this->buildAppCommandHandler = new RunBuildCommandHandler(
             commandBus: $this->commandBus = new SpyCommandBus(),
             appStatusChecker: $this->getContainer()->get(AppStatusChecker::class),
-            gearImportStatus: $this->getContainer()->get(GearImportStatus::class),
             clock: PausedClock::on(SerializableDateTime::fromString('2023-10-17 16:15:04')),
         );
     }

@@ -9,9 +9,6 @@ parameters:
     env(ADMIN_USERNAME): 'admin'
     env(ADMIN_PASSWORD_HASH): ''
     env(ADMIN_ALLOWED_IPS): ''
-    env(STRAVA_CLIENT_ID): 'replace-me'
-    env(STRAVA_CLIENT_SECRET): 'replace-me'
-    env(STRAVA_REFRESH_TOKEN): 'replace-me'
     env(ENDURAIN_URL): 'replace-me'
     env(ENDURAIN_USERNAME): 'replace-me'
     env(ENDURAIN_PASSWORD): 'replace-me'
@@ -92,18 +89,6 @@ services:
 
     NeuronAI\Tools\Toolkits\ToolkitInterface:
         class: App\Domain\Integration\AI\Tool\Toolkit
-
-    App\Domain\Strava\StravaClientId:
-        factory: [ null, 'fromString' ]
-        arguments: ['%env(string:STRAVA_CLIENT_ID)%']
-
-    App\Domain\Strava\StravaClientSecret:
-        factory: [ null, 'fromString' ]
-        arguments: ['%env(string:STRAVA_CLIENT_SECRET)%']
-
-    App\Domain\Strava\StravaRefreshToken:
-        factory: [ null, 'fromString' ]
-        arguments: ['%env(string:STRAVA_REFRESH_TOKEN)%']
 
     App\Domain\Endurain\EndurainUrl:
         factory: [ null, 'fromString' ]
