@@ -179,30 +179,6 @@ class SpyStrava extends Strava
     }
 
     #[\Override]
-    public function getActivityPhotos(ActivityId $activityId): array
-    {
-        if ($this->triggerExceptionOnNextCall) {
-            $this->triggerExceptionOnNextCall = false;
-            throw new RequestException(message: 'The error', request: new Request('GET', 'uri'), response: new Response(500, [], Json::encode(['error' => 'The error'])));
-        }
-        ++$this->numberOfCallsExecuted;
-        $this->throw429IfMaxNumberOfCallsIsExceeded();
-
-        return [
-            [
-                'urls' => [
-                    5000 => 'https://www.strava.com/path-to-image.png',
-                ],
-            ],
-            [
-                'urls' => [
-                    2000 => 'https://www.strava.com/path-to-image.png',
-                ],
-            ],
-        ];
-    }
-
-    #[\Override]
     public function getGear(GearId $gearId): array
     {
         if ($this->triggerExceptionOnNextCall) {

@@ -8,6 +8,7 @@ use App\Application\Import\EndurainImport\ImportEndurainGear\ImportEndurainGear;
 use App\Domain\Activity\Activity;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
+use App\Domain\Activity\DuplicateActivityDetector;
 use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Endurain\Endurain;
 use App\Domain\Endurain\Stream\EndurainParsedStreams;
@@ -36,6 +37,7 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
         private Endurain $endurain,
         private ActivityRepository $activityRepository,
         private ActivityStreamRepository $activityStreamRepository,
+        private DuplicateActivityDetector $duplicateActivityDetector,
         private EndurainStreamParser $endurainStreamParser,
         private CommandBus $commandBus,
         private Clock $clock,
@@ -48,6 +50,27 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
 
         $rawEndurainData = $this->endurain->getActivity($command->getEndurainActivityId());
         $activity = Activity::createFromRawEndurainData($rawEndurainData);
+
+        $activityExistsById = $this->activityRepository->exists($activity->getId());
+        if (!$activityExistsById) {
+            // A DB-level copy from an old statistics-for-strava install (or
+            // a re-upload through a different route) doesn't rule out this
+            // "new" activity actually already existing under a different
+            // id. There is no reliable external id to de-dupe on for
+            // file-uploaded Endurain activities, so fall back to a fuzzy
+            // match on start time/distance/duration proximity.
+            if ($duplicate = $this->duplicateActivityDetector->findLikelyDuplicate($activity)) {
+                $command->getOutput()->writeln(sprintf(
+                    '  => [Skipped] activity "%s - %s" looks like a duplicate of already-imported activity "%s - %s"',
+                    $activity->getName(),
+                    $activity->getStartDate()->format('d-m-Y'),
+                    $duplicate->getName(),
+                    $duplicate->getStartDate()->format('d-m-Y'),
+                ));
+
+                return;
+            }
+        }
 
         // The gear referenced by this activity (if any) is imported inline,
         // on-demand, rather than as a separate batch pass: Endurain has no
@@ -67,7 +90,7 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
             $activity = $activity->withPolyline($parsedStreams->getPolyline());
         }
 
-        $isNewActivity = !$this->activityRepository->exists($activity->getId());
+        $isNewActivity = !$activityExistsById;
         if ($isNewActivity) {
             $this->activityRepository->add(ActivityWithRawData::fromState(
                 activity: $activity,

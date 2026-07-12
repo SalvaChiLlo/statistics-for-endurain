@@ -9,6 +9,7 @@ use App\Domain\Activity\Activity;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
+use App\Domain\Activity\DuplicateActivityDetector;
 use App\Domain\Activity\Stream\ActivityStream;
 use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Activity\Stream\StreamType;
@@ -16,11 +17,14 @@ use App\Domain\Endurain\Endurain;
 use App\Domain\Endurain\Stream\EndurainStreamParser;
 use App\Domain\Gear\GearId;
 use App\Infrastructure\CQRS\Command\Bus\CommandBus;
+use App\Infrastructure\ValueObject\Time\SerializableDateTime;
+use App\Tests\Domain\Activity\ActivityBuilder;
 use App\Tests\Infrastructure\Time\Clock\PausedClock;
 use App\Tests\SpyOutput;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -29,9 +33,11 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
     private MockObject $endurain;
     private MockObject $activityRepository;
     private MockObject $activityStreamRepository;
+    private MockObject $duplicateActivityDetector;
     private MockObject $commandBus;
     private ImportEndurainActivityCommandHandler $handler;
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testHandleAddsNewActivityAndPersistsStreamsAndPolyline(): void
     {
         $rawData = $this->buildRawEndurainActivity();
@@ -105,6 +111,50 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->assertEqualsCanonicalizing([StreamType::HEART_RATE, StreamType::LAT_LNG], $persistedStreamTypes);
     }
 
+    #[AllowMockObjectsWithoutExpectations]
+    public function testHandleSkipsActivityLikelyDuplicateOfAnAlreadyImportedOne(): void
+    {
+        $rawData = $this->buildRawEndurainActivity();
+
+        $this->endurain->expects($this->once())->method('getActivity')->willReturn($rawData);
+        $this->endurain->expects($this->never())->method('getAllActivityStreams');
+
+        $this->activityRepository->expects($this->once())->method('exists')->willReturn(false);
+
+        $existingDuplicate = ActivityBuilder::fromDefaults()
+            ->withName('Old migrated ride')
+            ->withStartDateTime(SerializableDateTime::fromString('2026-06-22 19:11:00'))
+            ->build();
+
+        $this->duplicateActivityDetector = $this->createMock(DuplicateActivityDetector::class);
+        $this->duplicateActivityDetector->expects($this->once())->method('findLikelyDuplicate')->willReturn($existingDuplicate);
+
+        $this->handler = new ImportEndurainActivityCommandHandler(
+            endurain: $this->endurain,
+            activityRepository: $this->activityRepository,
+            activityStreamRepository: $this->activityStreamRepository,
+            duplicateActivityDetector: $this->duplicateActivityDetector,
+            endurainStreamParser: new EndurainStreamParser(),
+            commandBus: $this->commandBus,
+            clock: PausedClock::fromString('2026-07-11 12:00:00'),
+        );
+
+        $this->commandBus->expects($this->never())->method('dispatch');
+        $this->activityRepository->expects($this->never())->method('add');
+        $this->activityRepository->expects($this->never())->method('update');
+        $this->activityStreamRepository->expects($this->never())->method('add');
+
+        $output = new SpyOutput();
+        $this->handler->handle(new ImportEndurainActivity(
+            output: $output,
+            endurainActivityId: 1,
+        ));
+
+        $this->assertStringContainsString('Skipped', (string) $output);
+        $this->assertStringContainsString('duplicate', (string) $output);
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
     public function testHandleSkipsStreamTypesAlreadyPersisted(): void
     {
         $rawData = $this->buildRawEndurainActivity();
@@ -138,6 +188,7 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         ));
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testHandleGracefullyHandles404OnStreamsWithoutPersistingAnyStreams(): void
     {
         $rawData = $this->buildRawEndurainActivity();
@@ -183,6 +234,7 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         ));
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testHandleUpdatesExistingActivity(): void
     {
         $rawData = $this->buildRawEndurainActivity();
@@ -341,18 +393,22 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->endurain = $this->createMock(Endurain::class);
         $this->activityRepository = $this->createMock(ActivityRepository::class);
         $this->activityStreamRepository = $this->createMock(ActivityStreamRepository::class);
+        $this->duplicateActivityDetector = $this->createMock(DuplicateActivityDetector::class);
+        $this->duplicateActivityDetector->method('findLikelyDuplicate')->willReturn(null);
         $this->commandBus = $this->createMock(CommandBus::class);
 
         $this->handler = new ImportEndurainActivityCommandHandler(
             endurain: $this->endurain,
             activityRepository: $this->activityRepository,
             activityStreamRepository: $this->activityStreamRepository,
+            duplicateActivityDetector: $this->duplicateActivityDetector,
             endurainStreamParser: new EndurainStreamParser(),
             commandBus: $this->commandBus,
             clock: PausedClock::fromString('2026-07-11 12:00:00'),
         );
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testHandleDoesNotDispatchGearImportWhenActivityHasNoGear(): void
     {
         $rawData = $this->buildRawEndurainActivity();
@@ -377,6 +433,7 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         ));
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testHandleDispatchesGearImportWhenActivityReferencesGear(): void
     {
         $rawData = [

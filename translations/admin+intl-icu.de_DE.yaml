@@ -46,7 +46,6 @@ Cancel: Abbrechen
 'Changes still need to be processed before they appear on the app': 'Changes still need to be processed before they appear on the app'
 'Changes to these settings only take effect after you restart the daemon container.': 'Changes to these settings only take effect after you restart the daemon container.'
 'Chat commands': 'Chat commands'
-'Check interval (minutes)': 'Check interval (minutes)'
 'Choose the order the metrics are shown in.': 'Choose the order the metrics are shown in.'
 Clear: Leeren
 Close: Schließen
@@ -80,7 +79,6 @@ Edit: Edit
 'Edit maintenance log': 'Wartungsprotokoll bearbeiten'
 'Edit recording device': 'Aufzeichnungsgerät bearbeiten'
 'Enable AI integration': 'Enable AI integration'
-'Enable Strava webhooks': 'Enable Strava webhooks'
 Enabled: Aktiviert
 Endpoint: Endpoint
 'Enter your password': 'Gib dein Passwort ein'
@@ -111,7 +109,6 @@ General: General
 'History of cycling FTP. Needed to calculate activity stress level.': 'History of cycling FTP. Needed to calculate activity stress level.'
 'History of running FTP. Needed to calculate activity stress level.': 'History of running FTP. Needed to calculate activity stress level.'
 'History of weight (in kg or pounds, depending on the appearance unit system). Needed to calculate relative w/kg.': 'History of weight (in kg or pounds, depending on the appearance unit system). Needed to calculate relative w/kg.'
-'How often (in minutes, between 1 and 60) queued webhook events are processed.': 'How often (in minutes, between 1 and 60) queued webhook events are processed.'
 "If you're not sure about your zones, leave these unchanged, the defaults are sensible. In relative mode the numbers are percentages of your max heart rate; in absolute mode they are actual bpm.": "If you're not sure about your zones, leave these unchanged, the defaults are sensible. In relative mode the numbers are percentages of your max heart rate; in absolute mode they are actual bpm."
 'Ignore retired gear': 'Ausgemusterte Ausrüstung ignorieren'
 Image: Bild
@@ -250,7 +247,6 @@ Tasks: Aufgaben
 'This will discard your current dashboard layout and restore the default widgets.': 'This will discard your current dashboard layout and restore the default widgets.'
 'Time format': 'Time format'
 To: To
-'Token used to validate incoming Strava webhook requests. Required when webhooks are enabled.': 'Token used to validate incoming Strava webhook requests. Required when webhooks are enabled.'
 'Total size exceeds {max} MB': 'Gesamtgröße überschreitet {max} MB'
 'Track gear usage from your activities and stay on top of usage- and time-based maintenance.': 'Verfolge die Nutzung deiner Ausrüstung anhand deiner Aktivitäten und behalte nutzungs- sowie zeitbasierte Wartungen im Blick.'
 'Turn gear maintenance tracking on or off.': 'Wartungsverfolgung für Ausrüstung ein- oder ausschalten.'
@@ -266,9 +262,7 @@ Unit: Unit
 Uploaded: Hochgeladen
 Uploading...: 'Wird hochgeladen...'
 Username: Benutzername
-'Verify token': 'Verify token'
 Version: Version
-Webhooks: Webhooks
 'What is my FTP?': 'What is my FTP?'
 'When disabled, gear marked as retired is left out of the chart.': 'When disabled, gear marked as retired is left out of the chart.'
 "When enabled, gear marked as retired is skipped. Its components won't increase usage and no maintenance is tracked for them.": 'Wenn aktiviert, wird als ausgemustert markierte Ausrüstung übersprungen. Ihre Komponenten erhöhen die Nutzung nicht und es wird keine Wartung dafür verfolgt.'
