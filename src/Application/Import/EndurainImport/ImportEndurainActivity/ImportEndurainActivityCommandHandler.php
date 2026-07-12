@@ -9,6 +9,7 @@ use App\Domain\Activity\Activity;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
 use App\Domain\Activity\DuplicateActivityDetector;
+use App\Domain\Activity\Route\RouteGeographyReverseGeocoder;
 use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Endurain\Endurain;
 use App\Domain\Endurain\Stream\EndurainParsedStreams;
@@ -39,6 +40,7 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
         private ActivityStreamRepository $activityStreamRepository,
         private DuplicateActivityDetector $duplicateActivityDetector,
         private EndurainStreamParser $endurainStreamParser,
+        private RouteGeographyReverseGeocoder $routeGeographyReverseGeocoder,
         private CommandBus $commandBus,
         private Clock $clock,
     ) {
@@ -88,7 +90,14 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
         $parsedStreams = $this->fetchParsedStreams($command->getEndurainActivityId(), $activity);
         if (null !== $parsedStreams?->getPolyline()) {
             $activity = $activity->withPolyline($parsedStreams->getPolyline());
+            // Endurain's activity payload has no starting coordinate of its own
+            // (see Activity::createFromRawEndurainData()); derive one from the
+            // re-encoded polyline so reverse geocoding below has something to
+            // work with.
+            $activity = $activity->withStartingCoordinate($activity->getEncodedPolyline()?->getStartingCoordinate());
         }
+
+        $activity = $this->routeGeographyReverseGeocoder->analyze($activity);
 
         $isNewActivity = !$activityExistsById;
         if ($isNewActivity) {

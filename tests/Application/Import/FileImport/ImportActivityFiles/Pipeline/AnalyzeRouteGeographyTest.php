@@ -6,6 +6,7 @@ use App\Application\Import\FileImport\ImportActivityFiles\Pipeline\ActivityImpor
 use App\Application\Import\FileImport\ImportActivityFiles\Pipeline\AnalyzeRouteGeography;
 use App\Domain\Activity\Route\RouteGeography;
 use App\Domain\Activity\Route\RouteGeographyAnalyzer;
+use App\Domain\Activity\Route\RouteGeographyReverseGeocoder;
 use App\Domain\Activity\SportType\SportType;
 use App\Domain\Activity\WorldType;
 use App\Domain\Integration\Geocoding\Nominatim\CouldNotReverseGeocodeAddress;
@@ -74,8 +75,10 @@ class AnalyzeRouteGeographyTest extends ContainerTestCase
     protected function setUp(): void
     {
         $this->analyzeRouteGeography = new AnalyzeRouteGeography(
-            $this->nominatim = $this->createMock(Nominatim::class),
-            $this->getContainer()->get(RouteGeographyAnalyzer::class),
+            new RouteGeographyReverseGeocoder(
+                $this->nominatim = $this->createMock(Nominatim::class),
+                $this->getContainer()->get(RouteGeographyAnalyzer::class),
+            ),
         );
     }
 }
