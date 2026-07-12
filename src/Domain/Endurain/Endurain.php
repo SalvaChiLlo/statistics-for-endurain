@@ -238,6 +238,14 @@ class Endurain
      * Endurain returns one array entry per stream type that has data (types
      * with no data are simply absent from the array, not empty entries).
      *
+     * Confirmed against a real Endurain instance (issue #55): for an activity
+     * with no recorded streams at all (e.g. a manually logged activity with
+     * no GPS/sensor data), the endpoint responds HTTP 200 with a bare JSON
+     * `null` body instead of an empty array or a 404. That decodes to PHP
+     * `null`, which is normalized to `[]` here to satisfy this method's
+     * `array` return type and let the import continue without streams for
+     * that activity.
+     *
      * @return array<mixed>
      */
     public function getAllActivityStreams(int $activityId): array
@@ -247,7 +255,7 @@ class Endurain
                 'Authorization' => 'Bearer '.$this->getAccessToken(),
                 self::CLIENT_TYPE_HEADER => self::CLIENT_TYPE_VALUE,
             ],
-        ]));
+        ])) ?? [];
     }
 
     /**
