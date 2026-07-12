@@ -10,12 +10,16 @@ use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
 use App\Domain\Activity\DuplicateActivityDetector;
+use App\Domain\Activity\Route\RouteGeography;
+use App\Domain\Activity\Route\RouteGeographyAnalyzer;
+use App\Domain\Activity\Route\RouteGeographyReverseGeocoder;
 use App\Domain\Activity\Stream\ActivityStream;
 use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Endurain\Endurain;
 use App\Domain\Endurain\Stream\EndurainStreamParser;
 use App\Domain\Gear\GearId;
+use App\Domain\Integration\Geocoding\Nominatim\Nominatim;
 use App\Infrastructure\CQRS\Command\Bus\CommandBus;
 use App\Infrastructure\ValueObject\Time\SerializableDateTime;
 use App\Tests\Domain\Activity\ActivityBuilder;
@@ -35,6 +39,7 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
     private MockObject $activityStreamRepository;
     private MockObject $duplicateActivityDetector;
     private MockObject $commandBus;
+    private MockObject $nominatim;
     private ImportEndurainActivityCommandHandler $handler;
 
     #[AllowMockObjectsWithoutExpectations]
@@ -116,6 +121,69 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
     }
 
     #[AllowMockObjectsWithoutExpectations]
+    public function testHandleReverseGeocodesNewlyImportedActivity(): void
+    {
+        // Regression test for #58: Endurain-imported activities never got a
+        // starting coordinate or a reverse-geocoded routeGeography, so they
+        // were silently filtered out of the Heatmap page (which requires a
+        // non-null "$.country_code" in routeGeography).
+        $rawData = $this->buildRawEndurainActivity();
+        $rawStreams = $this->buildRawEndurainStreams();
+
+        $this->endurain->method('getActivity')->willReturn($rawData);
+        $this->endurain->method('getAllActivityStreams')->willReturn($rawStreams);
+        $this->activityRepository->method('exists')->willReturn(false);
+        $this->activityStreamRepository->method('hasOneForActivityAndStreamType')->willReturn(false);
+
+        // Build a fresh mock/handler for this test rather than reusing the
+        // one from setUp(): setUp() registers a catch-all
+        // "return []" stub for reverseGeocode() so the *other* tests (which
+        // don't care about geocoding) don't blow up on the now-unconditional
+        // reverse-geocode call, and PHPUnit gives priority to whichever stub
+        // was registered first - so a more specific expectation added here,
+        // on top of that mock, would never actually be reached.
+        $this->nominatim = $this->createMock(Nominatim::class);
+        $this->nominatim
+            ->expects($this->once())
+            ->method('reverseGeocode')
+            ->willReturn([
+                'country_code' => 'es',
+                RouteGeography::IS_REVERSE_GEOCODED => true,
+            ]);
+        $this->handler = new ImportEndurainActivityCommandHandler(
+            endurain: $this->endurain,
+            activityRepository: $this->activityRepository,
+            activityStreamRepository: $this->activityStreamRepository,
+            duplicateActivityDetector: $this->duplicateActivityDetector,
+            endurainStreamParser: new EndurainStreamParser(),
+            routeGeographyReverseGeocoder: new RouteGeographyReverseGeocoder(
+                $this->nominatim,
+                new RouteGeographyAnalyzer(),
+            ),
+            commandBus: $this->commandBus,
+            clock: PausedClock::fromString('2026-07-11 12:00:00'),
+        );
+
+        $this->activityRepository
+            ->expects($this->once())
+            ->method('add')
+            ->with($this->callback(function (ActivityWithRawData $activityWithRawData): bool {
+                $activity = $activityWithRawData->getActivity();
+                $this->assertNotNull($activity->getStartingCoordinate());
+                $this->assertEquals('es', $activity->getRouteGeography()->getStartingPointCountryCode());
+                $this->assertTrue($activity->getRouteGeography()->isReversedGeocoded());
+
+                return true;
+            }));
+
+        $output = new SpyOutput();
+        $this->handler->handle(new ImportEndurainActivity(
+            output: $output,
+            endurainActivityId: 1,
+        ));
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
     public function testHandleSkipsActivityLikelyDuplicateOfAnAlreadyImportedOne(): void
     {
         $rawData = $this->buildRawEndurainActivity();
@@ -139,6 +207,10 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
             activityStreamRepository: $this->activityStreamRepository,
             duplicateActivityDetector: $this->duplicateActivityDetector,
             endurainStreamParser: new EndurainStreamParser(),
+            routeGeographyReverseGeocoder: new RouteGeographyReverseGeocoder(
+                $this->nominatim,
+                new RouteGeographyAnalyzer(),
+            ),
             commandBus: $this->commandBus,
             clock: PausedClock::fromString('2026-07-11 12:00:00'),
         );
@@ -147,6 +219,7 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->activityRepository->expects($this->never())->method('add');
         $this->activityRepository->expects($this->never())->method('update');
         $this->activityStreamRepository->expects($this->never())->method('add');
+        $this->nominatim->expects($this->never())->method('reverseGeocode');
 
         $output = new SpyOutput();
         $this->handler->handle(new ImportEndurainActivity(
@@ -400,6 +473,8 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
         $this->duplicateActivityDetector = $this->createMock(DuplicateActivityDetector::class);
         $this->duplicateActivityDetector->method('findLikelyDuplicate')->willReturn(null);
         $this->commandBus = $this->createMock(CommandBus::class);
+        $this->nominatim = $this->createMock(Nominatim::class);
+        $this->nominatim->method('reverseGeocode')->willReturn([]);
 
         $this->handler = new ImportEndurainActivityCommandHandler(
             endurain: $this->endurain,
@@ -407,6 +482,10 @@ class ImportEndurainActivityCommandHandlerTest extends TestCase
             activityStreamRepository: $this->activityStreamRepository,
             duplicateActivityDetector: $this->duplicateActivityDetector,
             endurainStreamParser: new EndurainStreamParser(),
+            routeGeographyReverseGeocoder: new RouteGeographyReverseGeocoder(
+                $this->nominatim,
+                new RouteGeographyAnalyzer(),
+            ),
             commandBus: $this->commandBus,
             clock: PausedClock::fromString('2026-07-11 12:00:00'),
         );
