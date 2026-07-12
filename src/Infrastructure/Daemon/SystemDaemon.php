@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Daemon;
 
+use App\Console\Daemon\RunEndurainImportAndBuildAppConsoleCommand;
 use App\Console\Daemon\RunFileImportAndBuildAppConsoleCommand;
 use App\Domain\Import\ImportMode;
 use App\Domain\Settings\SettingsRepository;
@@ -16,6 +17,7 @@ use App\Infrastructure\Time\Clock\Clock;
 use Doctrine\DBAL\Connection;
 use React\EventLoop\Loop;
 use React\Promise\PromiseInterface;
+use WyriHaximus\React\Cron;
 use WyriHaximus\React\Cron\Action;
 
 use function React\Promise\resolve;
@@ -28,6 +30,23 @@ final class SystemDaemon implements Daemon
     use ConsoleOutputAware;
 
     private const string CRON_EVERY_5_MINUTES = '*/5 * * * *';
+
+    /**
+     * Unlike Strava's rate-limited API, Endurain is self-hosted, so a fairly aggressive
+     * default sync interval is safe and keeps the dashboard close to real-time. Every 15
+     * minutes strikes a balance between freshness and not hammering the Endurain instance.
+     */
+    private const string CRON_EVERY_15_MINUTES = '*/15 * * * *';
+
+    private const string IMPORT_AND_BUILD_SCHEDULE_ENV_VAR = 'IMPORT_AND_BUILD_SCHEDULE';
+
+    /**
+     * Constructing a Cron instance immediately registers a live timer on the global
+     * React event loop (see WyriHaximus\React\Cron\Scheduler::align()). We keep a
+     * reference so it can be stopped explicitly (e.g. in tests, via stopCron()) —
+     * otherwise the timer keeps ticking forever and the process never exits.
+     */
+    private ?Cron $cron = null;
 
     public function __construct(
         private readonly Clock $clock,
@@ -110,16 +129,31 @@ final class SystemDaemon implements Daemon
             );
         }
 
-        \WyriHaximus\React\Cron::create(...$actions)->on('error', function (\Throwable $throwable): void {
+        $endurainImportSchedule = $this->resolveEndurainImportSchedule();
+        $extraConfiguredCronActionsOutput[] = sprintf('<info> - runEndurainImport: %s</info>', $endurainImportSchedule);
+        $actions[] = new Action(
+            key: 'runEndurainImport',
+            mutexTtl: 1200,
+            expression: $endurainImportSchedule,
+            performer: function (): PromiseInterface {
+                $process = new CronProcess(
+                    cronActionId: 'runEndurainImport',
+                    clock: $this->clock,
+                    output: $this->getConsoleOutput(),
+                    command: sprintf('bin/console %s', RunEndurainImportAndBuildAppConsoleCommand::NAME)
+                );
+                $process->start();
+
+                return resolve(true);
+            }
+        );
+
+        $this->cron = Cron::create(...$actions);
+        $this->cron->on('error', function (\Throwable $throwable): void {
             $this->getConsoleOutput()->writeln(sprintf('<error>%s</error>', $throwable->getMessage()));
         });
 
-        if ([] === $actions) {
-            $this->getConsoleOutput()->writeln(sprintf('<info>%s</info>', 'No cron items configured, shutting down cron...'));
-
-            return;
-        }
-
+        // Endurain sync is always registered unconditionally above, so $actions can no longer be empty.
         $this->getConsoleOutput()->writeln(sprintf('<info>%s</info>', 'Cron configured'));
         $this->getConsoleOutput()->writeln([
             ...array_map(
@@ -128,5 +162,31 @@ final class SystemDaemon implements Daemon
             ),
             ...$extraConfiguredCronActionsOutput,
         ]);
+    }
+
+    /**
+     * Stops the scheduler timer registered on the global event loop by configureCron().
+     * The production entrypoint (the long-running daemon process) never needs to call
+     * this, but tests that invoke configureCron() must call it afterwards — otherwise
+     * the timer keeps the PHP process (and, under paratest, the whole worker) alive
+     * indefinitely.
+     */
+    public function stopCron(): void
+    {
+        $this->cron?->stop();
+        $this->cron = null;
+    }
+
+    /**
+     * Endurain sync is unconditional (not gated by ImportMode) and, unlike the old
+     * Strava import, isn't rate-limited, so a fixed default schedule is sensible.
+     * It's still overridable via IMPORT_AND_BUILD_SCHEDULE for deployments that want
+     * a less (or more) frequent sync.
+     */
+    private function resolveEndurainImportSchedule(): string
+    {
+        $configuredSchedule = trim((string) getenv(self::IMPORT_AND_BUILD_SCHEDULE_ENV_VAR));
+
+        return '' !== $configuredSchedule ? $configuredSchedule : self::CRON_EVERY_15_MINUTES;
     }
 }
