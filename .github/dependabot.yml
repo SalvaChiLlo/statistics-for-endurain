@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: weekly
     assignees:
-      - "robiningelbrecht"
+      - "SalvaChiLlo"
     labels:
       - "tech debt"
     ignore:

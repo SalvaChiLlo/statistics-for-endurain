@@ -55,4 +55,4 @@ jobs:
             
             https://github.com/nicholas-fedor/shoutrrr/releases/tag/${{ steps.upstream.outputs.latest }}
           LABELS: tech debt
-          ASSIGNEES: robiningelbrecht
+          ASSIGNEES: SalvaChiLlo
