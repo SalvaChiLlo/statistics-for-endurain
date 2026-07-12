@@ -1,3 +1,11 @@
+# [v5.4.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.3.0...v5.4.0)
+
+## Bug fixes
+* ISSUE #58: Fixed the Heatmap page showing 0 routes/countries — Endurain-imported activities were never reverse-geocoded, unlike file-imported ones. Adds `app:endurain:backfill-route-geography` to fix already-imported activities.
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
 # [v5.3.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.2.0...v5.3.0)
 
 ## Bug fixes
