@@ -59,7 +59,7 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
             // id. There is no reliable external id to de-dupe on for
             // file-uploaded Endurain activities, so fall back to a fuzzy
             // match on start time/distance/duration proximity.
-            if ($duplicate = $this->duplicateActivityDetector->findLikelyDuplicate($activity)) {
+            if (($duplicate = $this->duplicateActivityDetector->findLikelyDuplicate($activity)) instanceof Activity) {
                 $command->getOutput()->writeln(sprintf(
                     '  => [Skipped] activity "%s - %s" looks like a duplicate of already-imported activity "%s - %s"',
                     $activity->getName(),
@@ -106,7 +106,7 @@ final readonly class ImportEndurainActivityCommandHandler implements CommandHand
             ));
         }
 
-        if (null !== $parsedStreams) {
+        if ($parsedStreams instanceof EndurainParsedStreams) {
             foreach ($parsedStreams->getStreams() as $stream) {
                 if ($this->activityStreamRepository->hasOneForActivityAndStreamType($activity->getId(), $stream->getStreamType())) {
                     continue;
