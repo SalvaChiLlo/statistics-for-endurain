@@ -11,9 +11,7 @@ use App\Application\Build\RunBuild\RunBuild;
 use App\Application\Import\CalculateActivityMetrics\CalculateActivityMetrics;
 use App\Application\Import\StravaImport\DeleteActivitiesMarkedForDeletion\DeleteActivitiesMarkedForDeletion;
 use App\Application\Import\StravaImport\ImportActivities\ImportActivities;
-use App\Application\Import\StravaImport\ImportChallenges\ImportChallenges;
 use App\Application\Import\StravaImport\ImportGear\ImportGear;
-use App\Application\Import\StravaImport\ImportSegments\ImportSegments;
 use App\Application\Import\StravaImport\ProcessRawActivityData\ProcessRawActivityData;
 use App\Application\RebuildStatus;
 use App\Domain\Activity\ActivityId;
@@ -135,8 +133,6 @@ final class RunStravaImportAndBuildAppConsoleCommand extends Command
                     restrictToActivityIds: $restrictToActivityIds
                 ));
                 $this->commandBus->dispatch(new ProcessRawActivityData($output));
-                $this->commandBus->dispatch(new ImportSegments($output));
-                $this->commandBus->dispatch(new ImportChallenges($output));
                 $this->commandBus->dispatch(new CalculateActivityMetrics($output));
                 $this->commandBus->dispatch(new DeleteActivitiesMarkedForDeletion($output));
 

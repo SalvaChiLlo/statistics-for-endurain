@@ -71,22 +71,6 @@ final readonly class Countries
         return $this->hydrate($results);
     }
 
-    /**
-     * @return array<string, string>
-     */
-    public function getUsedInSegments(): array
-    {
-        $results = $this->connection->executeQuery(
-            <<<SQL
-            SELECT DISTINCT countryCode
-            FROM Segment
-            WHERE countryCode IS NOT NULL
-            SQL
-        )->fetchFirstColumn();
-
-        return $this->hydrate($results);
-    }
-
     public function findCountryCodeByCountryName(string $countryName): ?string
     {
         if (!$countryCode = array_search($countryName, $this->countriesKeyedByAlpha2codes)) {

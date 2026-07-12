@@ -73,12 +73,6 @@
                         </a>
                     </li>
                 {% endif %}
-                <li>
-                    <a title="{{ "Segments"|trans }}" href="{{ relativeUrl('segments') }}" data-router-navigate="{{ relativeUrl('segments') }}" {{ isSymfonyRouter ? 'data-router-disabled' : '' }}>
-                        <svg fill="currentColor" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g><path d="M217.45557,38.544a35.9967,35.9967,0,0,0-57.937,40.96679L79.5105,159.51855a36.05906,36.05906,0,0,0-40.96607,7.0254H38.544a36.00029,36.00029,0,1,0,57.93737,9.94531L176.4895,96.48145A35.99663,35.99663,0,0,0,217.45557,38.544ZM72.48584,200.48535a12.00027,12.00027,0,0,1-16.97119-16.9707h-.00049a12.00044,12.00044,0,0,1,16.97168,16.9707Zm128-128a12.01673,12.01673,0,0,1-16.969.00244l-.0022-.00244a12.0001,12.0001,0,1,1,16.97119,0Z"></path></g></svg>
-                        <span>{{ "Segments"|trans|ellipses(23) }}</span>
-                    </a>
-                </li>
             </ul>
             <ul class="space-y-1 py-2">
                 <li>
@@ -133,31 +127,18 @@
                     </a>
                 </li>
             </ul>
-            {% if completedChallenges > 0 or totalPhotoCount > 0 %}
+            {% if totalPhotoCount > 0 %}
                 <ul class="space-y-1 py-2">
-                    {% if completedChallenges > 0 %}
-                        <li>
-                            <a title="{{ "Challenges"|trans }}" href="{{ relativeUrl('challenges') }}" data-router-navigate="{{ relativeUrl('challenges') }}" {{ isSymfonyRouter ? 'data-router-disabled' : '' }}>
-                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m8.032 12 1.984 1.984 4.96-4.96m4.55 5.272.893-.893a1.984 1.984 0 0 0 0-2.806l-.893-.893a1.984 1.984 0 0 1-.581-1.403V7.04a1.984 1.984 0 0 0-1.984-1.984h-1.262a1.983 1.983 0 0 1-1.403-.581l-.893-.893a1.984 1.984 0 0 0-2.806 0l-.893.893a1.984 1.984 0 0 1-1.403.581H7.04A1.984 1.984 0 0 0 5.055 7.04v1.262c0 .527-.209 1.031-.581 1.403l-.893.893a1.984 1.984 0 0 0 0 2.806l.893.893c.372.372.581.876.581 1.403v1.262a1.984 1.984 0 0 0 1.984 1.984h1.262c.527 0 1.031.209 1.403.581l.893.893a1.984 1.984 0 0 0 2.806 0l.893-.893a1.985 1.985 0 0 1 1.403-.581h1.262a1.984 1.984 0 0 0 1.984-1.984V15.7c0-.527.209-1.031.581-1.403Z"/>
-                                </svg>
-                                <span>{{ "Challenges"|trans|ellipses(19) }}</span>
-                                <span class="badge">{{ completedChallenges }}</span>
-                            </a>
-                        </li>
-                    {% endif %}
-                    {% if totalPhotoCount > 0 %}
-                        <li>
-                            <a title="{{ "Photos"|trans }}" href="{{ relativeUrl('photos') }}" data-router-navigate="{{ relativeUrl('photos') }}" {{ isSymfonyRouter ? 'data-router-disabled' : '' }}>
-                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M4 18V8a1 1 0 0 1 1-1h1.5l1.707-1.707A1 1 0 0 1 8.914 5h6.172a1 1 0 0 1 .707.293L17.5 7H19a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/>
-                                    <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                                </svg>
-                                <span>{{ "Photos"|trans|ellipses(19) }}</span>
-                                <span class="badge">{{ totalPhotoCount }}</span>
-                            </a>
-                        </li>
-                    {% endif %}
+                    <li>
+                        <a title="{{ "Photos"|trans }}" href="{{ relativeUrl('photos') }}" data-router-navigate="{{ relativeUrl('photos') }}" {{ isSymfonyRouter ? 'data-router-disabled' : '' }}>
+                            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M4 18V8a1 1 0 0 1 1-1h1.5l1.707-1.707A1 1 0 0 1 8.914 5h6.172a1 1 0 0 1 .707.293L17.5 7H19a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/>
+                                <path stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                            </svg>
+                            <span>{{ "Photos"|trans|ellipses(19) }}</span>
+                            <span class="badge">{{ totalPhotoCount }}</span>
+                        </a>
+                    </li>
                 </ul>
             {% endif %}
         </div>

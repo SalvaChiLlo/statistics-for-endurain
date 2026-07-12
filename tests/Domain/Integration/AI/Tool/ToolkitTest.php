@@ -7,51 +7,34 @@ use App\Domain\Activity\ActivityRepository;
 use App\Domain\Activity\ActivityWithRawData;
 use App\Domain\Activity\Lap\ActivityLapRepository;
 use App\Domain\Activity\Split\ActivitySplitRepository;
-use App\Domain\Activity\SportType\SportType;
 use App\Domain\Activity\Stream\ActivityStreamRepository;
 use App\Domain\Activity\Stream\Metric\ActivityStreamMetric;
 use App\Domain\Activity\Stream\Metric\ActivityStreamMetricRepository;
 use App\Domain\Activity\Stream\Metric\ActivityStreamMetricType;
 use App\Domain\Activity\Stream\StreamType;
-use App\Domain\Challenge\ChallengeId;
-use App\Domain\Challenge\ChallengeRepository;
 use App\Domain\Gear\GearId;
 use App\Domain\Gear\GearRepository;
 use App\Domain\Integration\AI\Tool\GetActivity;
 use App\Domain\Integration\AI\Tool\GetActivityLaps;
-use App\Domain\Integration\AI\Tool\GetActivitySegmentEfforts;
 use App\Domain\Integration\AI\Tool\GetActivitySplits;
 use App\Domain\Integration\AI\Tool\GetActivityStreams;
 use App\Domain\Integration\AI\Tool\GetAllActivitiesSummary;
 use App\Domain\Integration\AI\Tool\GetAthleteDetails;
-use App\Domain\Integration\AI\Tool\GetChallenges;
 use App\Domain\Integration\AI\Tool\GetDefaultHeartRateZone;
 use App\Domain\Integration\AI\Tool\GetFtpHistory;
 use App\Domain\Integration\AI\Tool\GetGear;
 use App\Domain\Integration\AI\Tool\GetMostRecentActivity;
-use App\Domain\Integration\AI\Tool\GetSegment;
 use App\Domain\Integration\AI\Tool\MakeStravaActivityLink;
-use App\Domain\Integration\AI\Tool\MakeStravaChallengeLink;
-use App\Domain\Integration\AI\Tool\MakeStravaSegmentLink;
-use App\Domain\Segment\SegmentEffort\SegmentEffortId;
-use App\Domain\Segment\SegmentEffort\SegmentEffortRepository;
-use App\Domain\Segment\SegmentId;
-use App\Domain\Segment\SegmentRepository;
 use App\Infrastructure\Serialization\Json;
-use App\Infrastructure\ValueObject\Measurement\Length\Kilometer;
 use App\Infrastructure\ValueObject\Measurement\Length\Meter;
 use App\Infrastructure\ValueObject\Measurement\UnitSystem;
-use App\Infrastructure\ValueObject\String\Name;
 use App\Infrastructure\ValueObject\Time\SerializableDateTime;
 use App\Tests\ContainerTestCase;
 use App\Tests\Domain\Activity\ActivityBuilder;
 use App\Tests\Domain\Activity\Lap\ActivityLapBuilder;
 use App\Tests\Domain\Activity\Split\ActivitySplitBuilder;
 use App\Tests\Domain\Activity\Stream\ActivityStreamBuilder;
-use App\Tests\Domain\Challenge\ChallengeBuilder;
 use App\Tests\Domain\Gear\GearBuilder;
-use App\Tests\Domain\Segment\SegmentBuilder;
-use App\Tests\Domain\Segment\SegmentEffort\SegmentEffortBuilder;
 use NeuronAI\Tools\Toolkits\ToolkitInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Snapshots\MatchesSnapshots;
@@ -70,7 +53,7 @@ class ToolkitTest extends ContainerTestCase
     public function testItRegistersAllTools(): void
     {
         $this->assertCount(
-            16,
+            11,
             $this->getContainer()->get(ToolkitInterface::class)->tools(),
         );
     }
@@ -87,11 +70,6 @@ class ToolkitTest extends ContainerTestCase
             ['123456789'],
         ];
 
-        yield 'GetActivitySegmentEfforts Tool' => [
-            GetActivitySegmentEfforts::class,
-            ['123456789'],
-        ];
-
         yield 'GetActivityStreams Tool' => [
             GetActivityStreams::class,
             ['123456789'],
@@ -104,11 +82,6 @@ class ToolkitTest extends ContainerTestCase
 
         yield 'GetAthleteDetails Tool' => [
             GetAthleteDetails::class,
-            [],
-        ];
-
-        yield 'GetChallenges Tool' => [
-            GetChallenges::class,
             [],
         ];
 
@@ -137,23 +110,8 @@ class ToolkitTest extends ContainerTestCase
             [],
         ];
 
-        yield 'GetSegment Tool' => [
-            GetSegment::class,
-            ['1'],
-        ];
-
-        yield 'MakeStravaChallengeLink Tool' => [
-            MakeStravaChallengeLink::class,
-            ['tge-slug'],
-        ];
-
         yield 'MakeStravaActivityLink Tool' => [
             MakeStravaActivityLink::class,
-            ['1'],
-        ];
-
-        yield 'MakeStravaSegmentLink Tool' => [
-            MakeStravaSegmentLink::class,
             ['1'],
         ];
     }
@@ -250,41 +208,6 @@ class ToolkitTest extends ContainerTestCase
                 ->withDistanceInMeter(Meter::from(145014))
                 ->withName('Zwift hub')
                 ->withIsRetired(false)
-                ->build()
-        );
-
-        $this->getContainer()->get(SegmentRepository::class)->add(
-            SegmentBuilder::fromDefaults()
-                ->withSegmentId(SegmentId::fromUnprefixed('1'))
-                ->withName(Name::fromString('Segment One'))
-                ->withDistance(Kilometer::from(0.1))
-                ->withMaxGradient(5.3)
-                ->withIsFavourite(true)
-                ->withDeviceName('Polar')
-                ->withSportType(SportType::RIDE)
-                ->build()
-        );
-
-        $this->getContainer()->get(SegmentEffortRepository::class)->add(
-            SegmentEffortBuilder::fromDefaults()
-                ->withSegmentEffortId(SegmentEffortId::fromUnprefixed('1'))
-                ->withSegmentId(SegmentId::fromUnprefixed('1'))
-                ->withActivityId(ActivityId::fromUnprefixed('123456789'))
-                ->withElapsedTimeInSeconds(10.3)
-                ->withAverageWatts(200)
-                ->withDistance(Kilometer::from(0.1))
-                ->withName('An effort')
-                ->build()
-        );
-
-        $this->getContainer()->get(ChallengeRepository::class)->add(
-            ChallengeBuilder::fromDefaults()
-                ->withChallengeId(ChallengeId::fromUnprefixed('4022'))
-                ->withCreatedOn(SerializableDateTime::fromString('2023-10-13 18:38:34'))
-                ->withName('Castelli Keep It Up')
-                ->withSlug('castelli-keep-it-up-2023')
-                ->withLogoUrl('https://dgalywyr863hv.cloudfront.net/challenges/4022/4022-logo-100.png')
-                ->withLocalLogoUrl('files/challenges/b7537b1e-69f7-11ee-a81e-0242a0cd5a47.png')
                 ->build()
         );
     }

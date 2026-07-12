@@ -2,11 +2,9 @@
 
 namespace App\Domain\Strava;
 
-use App\Application\Import\StravaImport\ImportChallenges\ImportChallengesCommandHandler;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Gear\GearId;
-use App\Domain\Segment\SegmentId;
 use App\Domain\Strava\RateLimit\StravaRateLimitHasBeenReached;
 use App\Domain\Strava\RateLimit\StravaRateLimits;
 use App\Infrastructure\Console\ConsoleOutputAware;
@@ -15,12 +13,10 @@ use App\Infrastructure\Serialization\Json;
 use App\Infrastructure\Time\Clock\Clock;
 use App\Infrastructure\Time\Sleep;
 use App\Infrastructure\ValueObject\String\Url;
-use App\Infrastructure\ValueObject\Time\SerializableDateTime;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\RequestOptions;
-use League\Flysystem\FilesystemOperator;
 use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 
@@ -42,7 +38,6 @@ class Strava
         private readonly StravaClientSecret $stravaClientSecret,
         #[\SensitiveParameter]
         private readonly StravaRefreshToken $stravaRefreshToken,
-        private readonly FilesystemOperator $filesystemOperator,
         private readonly Sleep $sleep,
         private readonly LoggerInterface $logger,
         private readonly Clock $clock,
@@ -277,18 +272,6 @@ class Strava
     /**
      * @return array<string, mixed>
      */
-    public function getSegment(SegmentId $segmentId): array
-    {
-        return Json::decode($this->request('api/v3/segments/'.$segmentId->toUnprefixedString(), 'GET', [
-            RequestOptions::HEADERS => [
-                'Authorization' => 'Bearer '.$this->getAccessToken(),
-            ],
-        ]));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     public function getWebhookSubscription(): array
     {
         return Json::decode($this->request('api/v3/push_subscriptions', 'GET', [
@@ -322,63 +305,6 @@ class Strava
                 'client_secret' => (string) $this->stravaClientSecret,
             ],
         ]);
-    }
-
-    /**
-     * @return array<mixed>
-     */
-    public function getChallengesOnTrophyCase(): array
-    {
-        if (!$this->filesystemOperator->fileExists('storage/files/strava-challenge-history.html')) {
-            return [];
-        }
-        $contents = $this->filesystemOperator->read('storage/files/strava-challenge-history.html');
-        if (ImportChallengesCommandHandler::DEFAULT_STRAVA_CHALLENGE_HISTORY === trim($contents)) {
-            return [];
-        }
-        if (!preg_match_all('/<ul class=\'list-block-grid list-trophies\'>(?<matches>[\s\S]*)<\/ul>/U', $contents, $matches)) {
-            throw new \RuntimeException('Could not fetch Strava challenges from trophy case');
-        }
-        if (!preg_match_all('/<li(?<matches>[\s\S]*)<\/li>/U', $matches['matches'][0], $matches)) {
-            throw new \RuntimeException('Could not fetch Strava challenges from trophy case');
-        }
-
-        $challenges = [];
-        foreach ($matches['matches'] as $match) {
-            $match = str_replace(["\r", "\n"], '', $match);
-            if (!preg_match('/<a[\s\S]*>(?<match>.*?)<\/a>[\s\S]*<\/h6>/', $match, $challengeName)) {
-                throw new \RuntimeException('Could not fetch Strava challenge name');
-            }
-            if (!preg_match('/class=\'centered\'[\s\S]*title=\'(?<match>.*?)\'>/', $match, $teaser)) {
-                throw new \RuntimeException('Could not fetch Strava challenge teaser');
-            }
-            if (!preg_match('/<img[\s\S]* src="(?<match>.*?)"/', $match, $logoUrl)) {
-                throw new \RuntimeException('Could not fetch Strava challenge logoUrl');
-            }
-            if (!preg_match('/<a str-on="click" [\s\S]*href="\/challenges\/(?<match>.*?)"[\s\S]*<\/a>/', $match, $url)) {
-                throw new \RuntimeException('Could not fetch Strava challenge url');
-            }
-            if (!preg_match('/<img[\s\S]*data-trophy-challenge-id="(?<match>.*?)"[\s\S]*src="[\s\S]*"[\s\S]*\/>/', $match, $challengeId)) {
-                throw new \RuntimeException('Could not fetch Strava challenge challengeId');
-            }
-            if (!preg_match('/<time class=\'timestamp\'>(?<match>.*?)<\/time>/', $match, $completedOn)) {
-                throw new \RuntimeException('Could not fetch Strava challenge timestamp');
-            }
-            if (in_array(trim($completedOn['match']), ['', '0'], true)) {
-                throw new \RuntimeException('Could not fetch Strava challenge timestamp');
-            }
-
-            $challenges[] = [
-                'completedOn' => SerializableDateTime::createFromFormat('d M Y H:i:s', '01 '.trim($completedOn['match']).' 00:00:00'),
-                'name' => $challengeName['match'],
-                'teaser' => $teaser['match'],
-                'logo_url' => $logoUrl['match'],
-                'url' => $url['match'],
-                'challenge_id' => $challengeId['match'],
-            ];
-        }
-
-        return $challenges;
     }
 
     public function downloadImage(string $uri): string

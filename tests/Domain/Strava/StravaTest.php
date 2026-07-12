@@ -2,10 +2,8 @@
 
 namespace App\Tests\Domain\Strava;
 
-use App\Application\Import\StravaImport\ImportChallenges\ImportChallengesCommandHandler;
 use App\Domain\Activity\ActivityId;
 use App\Domain\Gear\GearId;
-use App\Domain\Segment\SegmentId;
 use App\Domain\Strava\InsufficientStravaAccessTokenScopes;
 use App\Domain\Strava\InvalidStravaAccessToken;
 use App\Domain\Strava\RateLimit\StravaRateLimitHasBeenReached;
@@ -23,7 +21,6 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\RequestOptions;
-use League\Flysystem\FilesystemOperator;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -36,16 +33,11 @@ class StravaTest extends TestCase
     private Strava $strava;
 
     private MockObject $client;
-    private MockObject $filesystemOperator;
     private NullSleep $sleep;
     private MockObject $logger;
 
     public function testGetAccessToken(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->logger
             ->expects($this->never())
             ->method('log');
@@ -65,10 +57,6 @@ class StravaTest extends TestCase
 
     public function testVerifyAccessToken(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->logger
             ->expects($this->never())
             ->method('log');
@@ -98,10 +86,6 @@ class StravaTest extends TestCase
 
     public function testVerifyAccessTokenWhenTheTokenIsInvalid(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->logger
             ->expects($this->never())
             ->method('log');
@@ -121,10 +105,6 @@ class StravaTest extends TestCase
 
     public function testVerifyAccessTokenWhenTheTokenHasInsufficientScopes(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->logger
             ->expects($this->never())
             ->method('log');
@@ -154,10 +134,6 @@ class StravaTest extends TestCase
 
     public function testVerifyAccessTokenWhenARandomErrorIsThrown(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->logger
             ->expects($this->never())
             ->method('log');
@@ -187,10 +163,6 @@ class StravaTest extends TestCase
 
     public function testGetWhenUnexpectedError(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->expectException(RequestException::class);
         $this->expectExceptionMessage('The error');
 
@@ -218,10 +190,6 @@ class StravaTest extends TestCase
 
     public function testGetWhenUnexpectedErrorWithoutBody(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->expectException(RequestException::class);
         $this->expectExceptionMessage('The error');
 
@@ -249,10 +217,6 @@ class StravaTest extends TestCase
 
     public function testGetWhenTooManyRequestsButNoRateLimits(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->expectException(RequestException::class);
         $this->expectExceptionMessage('The error');
 
@@ -280,10 +244,6 @@ class StravaTest extends TestCase
 
     public function testGetWhenTooManyRequestsDailyRateLimitExceeded(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->expectExceptionObject(StravaRateLimitHasBeenReached::dailyReadLimit());
 
         $matcher = $this->exactly(2);
@@ -310,10 +270,6 @@ class StravaTest extends TestCase
 
     public function testGetWhenTooManyRequestsFifteenMinuteRateLimitExceeded(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->expectExceptionObject(StravaRateLimitHasBeenReached::fifteenMinuteReadLimit(3));
 
         $matcher = $this->exactly(2);
@@ -340,10 +296,6 @@ class StravaTest extends TestCase
 
     public function testGetFifteenRateLimitIsAboutToBeHit(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $matcher = $this->exactly(2);
         $this->client
             ->expects($matcher)
@@ -382,10 +334,6 @@ class StravaTest extends TestCase
 
     public function testGetAthlete(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $matcher = $this->exactly(2);
         $this->client
             ->expects($matcher)
@@ -425,10 +373,6 @@ class StravaTest extends TestCase
 
     public function testGetActivities(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $matcher = $this->exactly(2);
         $this->client
             ->expects($matcher)
@@ -460,10 +404,6 @@ class StravaTest extends TestCase
 
     public function testGetActivity(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $matcher = $this->exactly(2);
         $this->client
             ->expects($matcher)
@@ -493,10 +433,6 @@ class StravaTest extends TestCase
 
     public function testGetActivityZones(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $matcher = $this->exactly(2);
         $this->client
             ->expects($matcher)
@@ -526,10 +462,6 @@ class StravaTest extends TestCase
 
     public function testGetAllActivityStreams(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $matcher = $this->exactly(2);
         $this->client
             ->expects($matcher)
@@ -559,10 +491,6 @@ class StravaTest extends TestCase
 
     public function testGetGear(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $matcher = $this->exactly(2);
         $this->client
             ->expects($matcher)
@@ -590,45 +518,8 @@ class StravaTest extends TestCase
         $this->strava->getGear(GearId::fromUnprefixed(3));
     }
 
-    public function testGetSegment(): void
-    {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
-        $matcher = $this->exactly(2);
-        $this->client
-            ->expects($matcher)
-            ->method('request')
-            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
-                if (1 === $matcher->numberOfInvocations()) {
-                    $this->assertEquals('POST', $method);
-                    $this->assertEquals('oauth/token', $path);
-                    $this->assertMatchesJsonSnapshot($options);
-
-                    return new Response(200, [], Json::encode(['access_token' => 'theAccessToken']));
-                }
-
-                $this->assertEquals('GET', $method);
-                $this->assertEquals('api/v3/segments/3', $path);
-                $this->assertMatchesJsonSnapshot($options);
-
-                return new Response(200, [], Json::encode([]));
-            });
-
-        $this->logger
-            ->expects($this->exactly(2))
-            ->method('info');
-
-        $this->strava->getSegment(SegmentId::fromUnprefixed(3));
-    }
-
     public function testGetWebhookSubscription(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->logger
             ->expects($this->once())
             ->method('info');
@@ -654,10 +545,6 @@ class StravaTest extends TestCase
 
     public function testCreateWebhookSubscription(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->logger
             ->expects($this->once())
             ->method('info');
@@ -688,10 +575,6 @@ class StravaTest extends TestCase
 
     public function testDeleteWebhookSubscription(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->logger
             ->expects($this->once())
             ->method('info');
@@ -715,319 +598,8 @@ class StravaTest extends TestCase
         $this->strava->deleteWebhookSubscription('the-id');
     }
 
-    public function testGetChallengesOnTrophyCase(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(file_get_contents(__DIR__.'/trophy-case.html'));
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $challenges = $this->strava->getChallengesOnTrophyCase();
-        $this->assertMatchesJsonSnapshot($challenges);
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenFileNotFound(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(false);
-
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('read');
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $challenges = $this->strava->getChallengesOnTrophyCase();
-        $this->assertEmpty($challenges);
-    }
-
-    public function testGetChallengesOnTrophyCaseWithDefaultHtml(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(ImportChallengesCommandHandler::DEFAULT_STRAVA_CHALLENGE_HISTORY);
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $challenges = $this->strava->getChallengesOnTrophyCase();
-        $this->assertEmpty($challenges);
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenInvalidHtml(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn('');
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenges from trophy case'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenInvalidHtmlCaseTwo(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn("<ul class='list-block-grid list-trophies'>YEAHBABY</ul>");
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenges from trophy case'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenNameNotFound(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(file_get_contents(__DIR__.'/trophy-case-without-name.html'));
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenge name'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenTeaserNotFound(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(file_get_contents(__DIR__.'/trophy-case-without-teaser.html'));
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenge teaser'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenLogoNotFound(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(file_get_contents(__DIR__.'/trophy-case-without-logo.html'));
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenge logoUrl'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenUrlNotFound(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(file_get_contents(__DIR__.'/trophy-case-without-url.html'));
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenge url'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenIdNotFound(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(file_get_contents(__DIR__.'/trophy-case-without-id.html'));
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenge challengeId'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
-    public function testGetChallengesOnTrophyCaseWhenTimestampNotFound(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(file_get_contents(__DIR__.'/trophy-case-without-timestamp.html'));
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenge timestamp'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
-    public function testGetChallengesOnTrophyCaseWithEmptyTimestamp(): void
-    {
-        $this->client
-            ->expects($this->never())
-            ->method('request');
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('fileExists')
-            ->willReturn(true);
-
-        $this->filesystemOperator
-            ->expects($this->once())
-            ->method('read')
-            ->with('storage/files/strava-challenge-history.html')
-            ->willReturn(file_get_contents(__DIR__.'/trophy-case-with-empty-timestamp.html'));
-
-        $this->logger
-            ->expects($this->never())
-            ->method('info');
-
-        $this->expectExceptionObject(new \RuntimeException('Could not fetch Strava challenge timestamp'));
-
-        $this->strava->getChallengesOnTrophyCase();
-    }
-
     public function testDownloadImage(): void
     {
-        $this->filesystemOperator
-            ->expects($this->never())
-            ->method('fileExists');
-
         $this->client
             ->expects($this->once())
             ->method('request')
@@ -1050,7 +622,6 @@ class StravaTest extends TestCase
         parent::setUp();
 
         $this->client = $this->createMock(Client::class);
-        $this->filesystemOperator = $this->createMock(FilesystemOperator::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->strava = new Strava(
@@ -1058,7 +629,6 @@ class StravaTest extends TestCase
             stravaClientId: StravaClientId::fromString('clientId'),
             stravaClientSecret: StravaClientSecret::fromString('clientSecret'),
             stravaRefreshToken: StravaRefreshToken::fromString('refreshToken'),
-            filesystemOperator: $this->filesystemOperator,
             sleep: $this->sleep = new NullSleep(),
             logger: $this->logger,
             clock: PausedClock::fromString('2025-11-02 12:43:20')

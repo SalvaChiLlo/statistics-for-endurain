@@ -43,14 +43,6 @@ final readonly class ActivityWithRawData
         return $this->rawData;
     }
 
-    /**
-     * @return array<mixed>
-     */
-    public function getSegmentEfforts(): array
-    {
-        return $this->rawData['segment_efforts'] ?? [];
-    }
-
     public function hasSplits(): bool
     {
         return !empty($this->rawData['splits_metric']) && !empty($this->rawData['splits_standard']);

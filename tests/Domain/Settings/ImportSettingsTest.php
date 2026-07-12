@@ -20,7 +20,6 @@ class ImportSettingsTest extends TestCase
         $this->assertCount(count(ActivityVisibility::cases()), $settings->getActivityVisibilitiesToImport());
         $this->assertCount(0, $settings->getActivitiesToSkipDuringImport());
         $this->assertNull($settings->getSkipActivitiesRecordedBefore());
-        $this->assertFalse($settings->getOptInToSegmentDetailsImport()->hasOptedIn());
     }
 
     public function testItBuildsFromStoredValues(): void
@@ -31,7 +30,6 @@ class ImportSettingsTest extends TestCase
             'activityVisibilitiesToImport' => ['everyone'],
             'skipActivitiesRecordedBefore' => '2023-09-01',
             'activitiesToSkipDuringImport' => ['123', '456'],
-            'optInToSegmentDetailImport' => true,
         ]);
 
         $this->assertTrue($settings->getSportTypesToImport()->has(SportType::RIDE));
@@ -40,7 +38,6 @@ class ImportSettingsTest extends TestCase
         $this->assertCount(1, $settings->getActivityVisibilitiesToImport());
         $this->assertCount(2, $settings->getActivitiesToSkipDuringImport());
         $this->assertSame('2023-09-01', $settings->getSkipActivitiesRecordedBefore()?->format('Y-m-d'));
-        $this->assertTrue($settings->getOptInToSegmentDetailsImport()->hasOptedIn());
     }
 
     public function testItThrowsForAnInvalidSportType(): void

@@ -47,7 +47,6 @@ final readonly class DashboardLayout implements \IteratorAggregate
             ['id' => 'dashboardWidget-zwiftStats', 'widget' => 'zwiftStats', 'width' => 50],
             ['id' => 'dashboardWidget-ftpHistory', 'widget' => 'ftpHistory', 'width' => 50],
             ['id' => 'dashboardWidget-challengeConsistency', 'widget' => 'challengeConsistency', 'width' => 50, 'config' => ['challenges' => []]],
-            ['id' => 'dashboardWidget-mostRecentChallengesCompleted', 'widget' => 'mostRecentChallengesCompleted', 'width' => 50, 'config' => ['numberOfChallengesToDisplay' => 5]],
             ['id' => 'dashboardWidget-athleteWeightHistory', 'widget' => 'athleteWeightHistory', 'width' => 50],
         ];
     }

@@ -51,16 +51,6 @@
                         {{ "Optional. Any activity recorded before this date will not be imported. Leave empty to disable. ⚠️ Changing this after activities have been imported will delete activities recorded before this date."|trans({}, 'admin') }}
                     </p>
                 </div>
-                <div>
-                    <label class="flex items-center gap-2 mt-0! font-normal cursor-pointer">
-                        <input type="checkbox" name="data[optInToSegmentDetailImport]" value="1"
-                               {{ (settings.optInToSegmentDetailImport ?? false) ? 'checked' : '' }}>
-                        <span>{{ "Import segment details"|trans({}, 'admin') }}</span>
-                    </label>
-                    <p class="description">
-                        {{ "Import segment details so segment maps can be displayed. This needs an extra Strava API call per segment and increases import time significantly."|trans({}, 'admin') }}
-                    </p>
-                </div>
             </div>
             <div class="mt-6">
                 <label class="mt-0!">{{ "Sport types to import"|trans({}, 'admin') }}</label>

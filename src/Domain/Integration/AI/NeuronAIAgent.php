@@ -48,7 +48,6 @@ final class NeuronAIAgent extends Agent
             steps: [
                 'Answer the user’s question clearly and accurately.',
                 'Ask the user for a Strava activity if you think you need it.',
-                'Ask the user for a Strava segment or segment effort if you think you need it.',
             ],
             output: [
                 'Ensure your response is fluent natural text.',
@@ -56,8 +55,6 @@ final class NeuronAIAgent extends Agent
                 'You may use markdown lists or bullet points if they help clarify the response, but only if they add value.',
                 'You may use markdown tables if they help clarify the response, but only if they add value.',
                 'Add links to the strava activity whenever you can',
-                'Add links to the strava segments whenever you can',
-                'Add links to the strava challenges whenever you can',
                 'If you do not know the answer to a question, admit it honestly; do not fabricate information.',
             ]
         );
