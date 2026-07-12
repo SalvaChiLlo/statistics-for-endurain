@@ -479,6 +479,45 @@ class EndurainTest extends TestCase
         );
     }
 
+    public function testGetAllActivityStreamsReturnsEmptyArrayWhenEndurainRespondsWithNull(): void
+    {
+        // Confirmed against a real Endurain instance (issue #55): for an activity
+        // with no recorded streams (e.g. a manually logged activity with no GPS/
+        // sensor data), the endpoint responds HTTP 200 with a bare JSON `null`
+        // body, rather than an empty array or a 404. Json::decode('null') yields
+        // PHP null, which must not be returned as-is given this method's `array`
+        // return type.
+        $this->logger
+            ->expects($this->exactly(2))
+            ->method('info');
+
+        $matcher = $this->exactly(2);
+        $this->client
+            ->expects($matcher)
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path, array $options) use ($matcher): Response {
+                if (1 === $matcher->numberOfInvocations()) {
+                    $this->assertEquals('POST', $method);
+                    $this->assertEquals('api/v1/auth/login', $path);
+
+                    return new Response(200, [], Json::encode([
+                        'access_token' => 'theAccessToken',
+                        'refresh_token' => 'theRefreshToken',
+                        'expires_in' => 899,
+                    ]));
+                }
+
+                $this->assertEquals('GET', $method);
+                $this->assertEquals('api/v1/activities_streams/activity_id/268/all', $path);
+
+                return new Response(200, [], 'null');
+            });
+
+        $endurain = $this->buildEndurain('2025-11-02 12:00:00');
+
+        $this->assertEquals([], $endurain->getAllActivityStreams(268));
+    }
+
     public function testGetCurrentUserIdDecodesSubClaimFromAccessToken(): void
     {
         $this->logger
