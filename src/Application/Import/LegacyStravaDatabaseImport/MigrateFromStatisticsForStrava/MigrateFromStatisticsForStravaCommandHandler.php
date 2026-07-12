@@ -141,7 +141,7 @@ final readonly class MigrateFromStatisticsForStravaCommandHandler implements Com
 
         $purchasePriceCurrency = (string) ($row['purchasePriceCurrency'] ?? '');
         if (isset($row['purchasePriceAmount']) && '' !== $purchasePriceCurrency) {
-            $gear = $gear->withPurchasePrice(new Money(
+            return $gear->withPurchasePrice(new Money(
                 amount: (int) $row['purchasePriceAmount'],
                 currency: new Currency($purchasePriceCurrency),
             ));
@@ -236,7 +236,7 @@ final readonly class MigrateFromStatisticsForStravaCommandHandler implements Com
             elapsedTimeInSeconds: isset($row['elapsedTimeInSeconds']) ? (int) $row['elapsedTimeInSeconds'] : 0,
             deviceName: isset($row['deviceName']) ? (string) $row['deviceName'] : null,
             totalImageCount: isset($row['totalImageCount']) ? (int) $row['totalImageCount'] : 0,
-            localImagePaths: !empty($row['localImagePaths']) ? explode(',', (string) $row['localImagePaths']) : [],
+            localImagePaths: empty($row['localImagePaths']) ? [] : explode(',', (string) $row['localImagePaths']),
             polyline: isset($row['polyline']) ? (string) $row['polyline'] : null,
             routeGeography: RouteGeography::create(isset($row['routeGeography']) ? (array) Json::decode((string) $row['routeGeography']) : []),
             weather: isset($row['weather']) ? (string) $row['weather'] : null,

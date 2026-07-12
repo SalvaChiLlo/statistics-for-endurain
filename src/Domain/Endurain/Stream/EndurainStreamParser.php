@@ -136,13 +136,19 @@ final readonly class EndurainStreamParser
 
         foreach ($rawStreams as $rawStream) {
             $endurainType = $rawStream['stream_type'] ?? null;
-            if (!is_int($endurainType) || !isset($extractors[$endurainType])) {
+            if (!is_int($endurainType)) {
+                continue;
+            }
+            if (!isset($extractors[$endurainType])) {
                 continue;
             }
             [$streamType, $extractor] = $extractors[$endurainType];
 
             foreach ($rawStream['stream_waypoints'] ?? [] as $waypoint) {
-                if (!is_array($waypoint) || !is_string($waypoint['time'] ?? null)) {
+                if (!is_array($waypoint)) {
+                    continue;
+                }
+                if (!is_string($waypoint['time'] ?? null)) {
                     continue;
                 }
                 $time = $waypoint['time'];

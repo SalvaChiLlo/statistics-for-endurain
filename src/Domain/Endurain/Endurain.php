@@ -171,7 +171,7 @@ class Endurain
                         'end_date' => $endDate,
                         'sort_by' => $sortBy,
                         'sort_order' => $sortOrder,
-                    ], fn (?string $value) => !is_null($value)),
+                    ], fn (?string $value): bool => !is_null($value)),
                 ]
             ));
 
@@ -212,7 +212,7 @@ class Endurain
             throw new \RuntimeException('Could not decode Endurain access token: unexpected JWT format');
         }
 
-        $payload = self::base64UrlDecode($segments[1]);
+        $payload = $this->base64UrlDecode($segments[1]);
         $decodedPayload = Json::decode($payload);
 
         if (empty($decodedPayload['sub'])) {
@@ -222,7 +222,7 @@ class Endurain
         return (int) $decodedPayload['sub'];
     }
 
-    private static function base64UrlDecode(string $data): string
+    private function base64UrlDecode(string $data): string
     {
         $data = strtr($data, '-_', '+/');
         $padding = strlen($data) % 4;
