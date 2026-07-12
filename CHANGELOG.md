@@ -1,3 +1,11 @@
+# [v5.3.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.2.0...v5.3.0)
+
+## Bug fixes
+* ISSUE #55: Fixed a crash importing activities that have no recorded streams (Endurain returns a bare `null` body instead of an empty array)
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
 # [v5.2.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.1.0...v5.2.0)
 
 ## Features
