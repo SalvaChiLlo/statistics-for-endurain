@@ -8,6 +8,7 @@ use App\Domain\Activity\ActivityId;
 use App\Domain\Activity\Stream\ActivityStream;
 use App\Domain\Activity\Stream\ActivityStreams;
 use App\Domain\Activity\Stream\StreamType;
+use App\Infrastructure\ValueObject\Geography\GeoMath;
 use App\Infrastructure\ValueObject\Geography\Polyline;
 use App\Infrastructure\ValueObject\Time\SerializableDateTime;
 
@@ -24,6 +25,12 @@ use App\Infrastructure\ValueObject\Time\SerializableDateTime;
  * each with its own "time" value and its own count. This class's job is to
  * reconstruct a shared canonical time axis those independent lists can be
  * aligned onto.
+ *
+ * Endurain also gives us no StreamType::TIME (elapsed seconds) or
+ * StreamType::DISTANCE (cumulative meters) data of its own - unlike FIT/
+ * GPX/TCX, whose parsers all derive and emit both. addDerivedTimeAndDistanceStreams()
+ * fills that gap; see its docblock for why this matters beyond raw
+ * completeness (it's required for evolution/over-time charts to work).
  */
 final readonly class EndurainStreamParser
 {
@@ -121,6 +128,20 @@ final readonly class EndurainStreamParser
      * EndurainStreamParserTest::testTimestampPresentInOneStreamTypeButNotAnotherIsNullAligned()
      * for the explicit gap-handling case this produces.
      *
+     * This exact-match assumption was re-verified against a real
+     * deployment's data while investigating issue #45 (polylines
+     * rendering as a short straight line): on a real ~724-waypoint
+     * activity, all of the LAT_LNG stream's waypoint timestamps were
+     * exact-matched onto the canonical axis (every one of its waypoints
+     * survived alignment; only the couple of axis positions contributed
+     * solely by other stream types came back null for LAT_LNG, which is
+     * the intended/documented gap behaviour). So the union-axis/exact-
+     * match design here was NOT the cause of #45 - the actual cause was
+     * an unrelated, far-too-large default tolerance in
+     * Polyline::simplify(), which collapsed the correctly-aligned
+     * coordinate list down to its two endpoints. See Polyline::simplify()
+     * for that fix.
+     *
      * @param array<int, array<string, mixed>> $rawStreams
      *
      * @return array<string, list<mixed>>
@@ -166,6 +187,69 @@ final readonly class EndurainStreamParser
                 static fn (string $time): mixed => $valuesByTypeAndTime[$streamTypeValue][$time] ?? null,
                 $axis
             );
+        }
+
+        return $this->addDerivedTimeAndDistanceStreams($streamMap, $axis);
+    }
+
+    /**
+     * Endurain never sends a "time" (elapsed seconds since start) or
+     * "distance" (cumulative meters) stream of its own - each waypoint only
+     * carries an absolute "time" used for axis alignment above, and no
+     * distance figure at all. Every other parser in this codebase
+     * (FitFileParser, GpxFileParser, TcxFileParser) DOES produce both, and
+     * CalculateCombinedStreams (which "evolution"/over-time charts read
+     * from) unconditionally requires a StreamType::TIME stream, skipping an
+     * activity entirely without one. Before this method existed, every
+     * Endurain-imported activity silently had no TIME stream at all, which
+     * is why - discovered while investigating #45 - only distribution
+     * (histogram) charts worked for Endurain activities: those bucket
+     * whatever values exist regardless of a time axis, while evolution
+     * charts need the combined-stream data that was never being built.
+     *
+     * TIME is derived as elapsed seconds between each canonical axis
+     * timestamp and the first one (mirrors GpxFileParser/FitFileParser's
+     * "$time - $startTimestamp" pattern). DISTANCE is derived by
+     * accumulating the haversine distance between consecutive non-null
+     * LAT_LNG axis points (mirrors GpxFileParser's own cumulative-distance
+     * calculation, since Endurain gives us no distance figure to read
+     * directly); a gap in coordinates simply leaves the cumulative total
+     * unchanged rather than null, since distance-so-far is still known
+     * even while momentarily missing a GPS fix.
+     *
+     * @param array<string, list<mixed>> $streamMap
+     * @param list<string>               $axis
+     *
+     * @return array<string, list<mixed>>
+     */
+    private function addDerivedTimeAndDistanceStreams(array $streamMap, array $axis): array
+    {
+        if ([] === $axis) {
+            return $streamMap;
+        }
+
+        $startTimestamp = new \DateTimeImmutable($axis[0])->getTimestamp();
+        $streamMap[StreamType::TIME->value] = array_map(
+            static fn (string $time): int => new \DateTimeImmutable($time)->getTimestamp() - $startTimestamp,
+            $axis
+        );
+
+        if (isset($streamMap[StreamType::LAT_LNG->value])) {
+            $cumulativeDistance = 0.0;
+            $previousLat = $previousLon = null;
+            $distanceStream = [];
+
+            foreach ($streamMap[StreamType::LAT_LNG->value] as $point) {
+                if (is_array($point) && null !== $previousLat && null !== $previousLon) {
+                    $cumulativeDistance += GeoMath::haversineDistance($previousLat, $previousLon, $point[0], $point[1]);
+                }
+                if (is_array($point)) {
+                    [$previousLat, $previousLon] = $point;
+                }
+                $distanceStream[] = round($cumulativeDistance, 2);
+            }
+
+            $streamMap[StreamType::DISTANCE->value] = $distanceStream;
         }
 
         return $streamMap;
