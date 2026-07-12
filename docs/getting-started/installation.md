@@ -47,13 +47,11 @@ services:
 
   # This container is optional, it is not required to run the app.
   # Its purpose is to handle recurring background tasks, such as:
-  #   - Importing and building your Endurain data (app:cron:run-endurain-import)
+  #   - Syncing and building your Endurain data (app:cron:run-endurain-import), which runs
+  #     automatically every 15 minutes by default, configurable via the IMPORT_AND_BUILD_SCHEDULE env var
   #   - Importing local FIT/GPX/TCX files (app:cron:run-file-import)
   #   - Sending notifications when gear maintenance is due
   #   - Sending notifications when a new app version becomes available
-  #
-  # As of this writing there is no built-in periodic scheduling of the Endurain sync itself — see
-  # "Scheduling" for how to trigger it on a recurring basis, and issue #44 for the tracked feature gap.
   #
   # These tasks can be configured in the main configuration file under the `daemon` section:
   #   https://github.com/SalvaChiLlo/statistics-for-endurain/blob/master/docs/configuration/main-configuration.md
@@ -199,9 +197,10 @@ main configuration and run:
 > After your first import, go to the admin panel's **General**/**Athlete** settings, fill in and save
 > your profile, then run the import/build command again. Only then will the dashboard actually render.
 
-## No automatic sync yet
+## Automatic sync
 
-There is currently no built-in periodic scheduling of the Endurain sync — `app:cron:run-endurain-import`
-must be run manually, via the optional `daemon` container (see [Scheduling](scheduling.md)), or via your
-own external cron/scheduler. Automatic scheduling is tracked in
-[issue #44](https://github.com/SalvaChiLlo/statistics-for-endurain/issues/44).
+Once the optional `daemon` container is running, `app:cron:run-endurain-import` is scheduled automatically
+every 15 minutes by default — no manual invocation needed. The schedule is configurable via the
+`IMPORT_AND_BUILD_SCHEDULE` env var; see [main configuration](../configuration/main-configuration.md#automatic-endurain-sync)
+for details. Without the daemon container, you still need to run the command manually or via your own
+external cron/scheduler.

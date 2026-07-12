@@ -50,8 +50,10 @@ troubleshooting) lives in [`docs/`](docs/home.md).
 This is an Endurain-only fork: it has no Strava OAuth/API integration and syncs exclusively against a self-hosted
 [Endurain](https://github.com/joaovitoriasilva/endurain) instance, using a dedicated service-account login rather
 than the OAuth flow. Configure `ENDURAIN_URL`, `ENDURAIN_USERNAME` and `ENDURAIN_PASSWORD` in your `.env` file to
-point the app at your Endurain instance and account, then run the daemon (or `bin/console app:cron:run-endurain-import`)
-to sync activities. Local FIT/GPX/TCX file import remains available independently via `IMPORT_MODE=files`.
+point the app at your Endurain instance and account. Once the daemon container is running, syncing happens
+automatically every 15 minutes by default (configurable via the `IMPORT_AND_BUILD_SCHEDULE` env var) — no manual
+invocation needed, though `bin/console app:cron:run-endurain-import` remains available to trigger a sync on demand.
+Local FIT/GPX/TCX file import remains available independently via `IMPORT_MODE=files`.
 
 Two more `.env` variables are required with no shipped default — see
 [docs/getting-started/installation.md](docs/getting-started/installation.md) for details:
@@ -63,8 +65,8 @@ To set a working admin panel login (the shipped defaults can never authenticate)
 `bin/console security:hash-password --no-interaction '<password>'` and set `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` —
 see the installation page for a Docker Compose `$$`-escaping gotcha with the generated hash.
 
-There is currently no automatic/periodic sync — `app:cron:run-endurain-import` must be run manually or via your
-own scheduler/the daemon container (see [issue #44](https://github.com/SalvaChiLlo/statistics-for-endurain/issues/44)).
+Once the daemon container is running, sync happens automatically every 15 minutes by default (configurable via
+the `IMPORT_AND_BUILD_SCHEDULE` env var) — no manual invocation needed.
 
 ## 🔁 Migrating from statistics-for-strava
 

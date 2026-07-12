@@ -253,3 +253,21 @@ This is the list of sport types supported in the `config.yaml` file. Make sure t
 
 * Handcycle
 * Wheelchair
+
+## Automatic Endurain sync
+
+If you have the [daemon container](../getting-started/installation.md) running, `bin/console app:cron:run-endurain-import`
+is scheduled automatically — no manual invocation needed. It fetches new/changed activities from your Endurain
+instance, marks activities no longer present remotely for deletion and rebuilds the app.
+
+Unlike the old Strava import, Endurain sync isn't rate-limited (it's your own self-hosted instance), so it defaults
+to running every 15 minutes (`*/15 * * * *`). You can override this with the `IMPORT_AND_BUILD_SCHEDULE` env var in
+your `.env` file, e.g.:
+
+```bash
+# Sync every hour instead of the default every 15 minutes.
+IMPORT_AND_BUILD_SCHEDULE="0 * * * *"
+```
+
+This is unrelated to the `daemon.cron` actions configured in `config.yaml` above (those are for optional
+notifications); the Endurain sync always runs on the daemon and cannot be disabled through `config.yaml`.

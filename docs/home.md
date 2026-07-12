@@ -43,4 +43,4 @@
 > * **Backup before updates**: Always backup your Docker volumes before upgrading.
 > * **Stay up-to-date**: Make sure you're running the latest version for the best experience.
 > * **Check the release notes**: Always check the [release notes](https://github.com/SalvaChiLlo/statistics-for-endurain/releases) to verify if there are any breaking changes.
-> * **No automatic sync yet**: activities are only pulled from Endurain when you run the import command yourself (or via the daemon container / your own scheduler) — there is no built-in periodic sync. See [Scheduling](getting-started/scheduling.md) and [issue #44](https://github.com/SalvaChiLlo/statistics-for-endurain/issues/44).
+> * **Automatic sync**: once the optional daemon container is running, activities are pulled from Endurain automatically every 15 minutes by default (configurable via the `IMPORT_AND_BUILD_SCHEDULE` env var). See [main configuration](configuration/main-configuration.md#automatic-endurain-sync).

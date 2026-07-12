@@ -26,5 +26,7 @@ the athlete profile needs to be configured via the admin panel before a build wi
 
 ## Does the app sync automatically?
 
-Not yet — see [Scheduling](/getting-started/scheduling.md) and
-[issue #44](https://github.com/SalvaChiLlo/statistics-for-endurain/issues/44).
+Yes, if you run the optional daemon container — it syncs against Endurain every 15 minutes by default,
+configurable via the `IMPORT_AND_BUILD_SCHEDULE` env var. See
+[Scheduling](/getting-started/scheduling.md) and
+[main configuration](/configuration/main-configuration.md?id=automatic-endurain-sync) for details.

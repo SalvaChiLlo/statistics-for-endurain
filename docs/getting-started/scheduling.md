@@ -1,13 +1,14 @@
 # Scheduling
 
-Your data only updates when the import/build commands are run — there is currently **no built-in
-periodic sync** of the Endurain integration itself (tracked as a known gap in
-[issue #44](https://github.com/SalvaChiLlo/statistics-for-endurain/issues/44)).
 If you have configured the [daemon](/getting-started/installation.md?id=docker-composeyml) container, the
+Endurain sync (`app:cron:run-endurain-import`) runs automatically every 15 minutes by default, configurable
+via the `IMPORT_AND_BUILD_SCHEDULE` env var — see
+[main configuration](/configuration/main-configuration.md?id=automatic-endurain-sync) for details. The
 actions listed under `daemon.cron` in your `config.yaml` (gear maintenance/update notifications, and
-file imports) will run automatically according to their schedule, but the Endurain sync itself
-(`app:cron:run-endurain-import`) must still be triggered yourself — via the daemon container's own
-schedule if you add it there, or via one of the mechanisms below.
+file imports) also run automatically according to their schedule.
+
+If you don't run the daemon container, your data only updates when the import/build commands are run
+manually — use one of the mechanisms below to schedule that yourself.
 
 ## Using the built-in crontab on your host system
 

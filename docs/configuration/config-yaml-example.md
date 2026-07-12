@@ -190,17 +190,18 @@ daemon:
   # Notification-related actions require the integrations.notifications.ntfyUrl setting to be configured.
   # ⚠️ This configuration only applies if you have set up the daemon container:
   #   /#/getting-started/installation?id=docker-composeyml
+  #
+  # Note: syncing against Endurain (bin/console app:cron:run-endurain-import) is NOT listed here.
+  # It always runs on the daemon, on a fixed schedule of every 15 minutes by default, configurable
+  # via the IMPORT_AND_BUILD_SCHEDULE env var. See main-configuration.md for details.
   cron:
-      # Action name. Allowed values: importDataAndBuildApp, gearMaintenanceNotification, appUpdateAvailableNotification
-    - action: 'importDataAndBuildApp'
+      # Action name. Allowed values: gearMaintenanceNotification, appUpdateAvailableNotification
+    - action: 'gearMaintenanceNotification'
       # Cron expression specifying when the action should run.
       # Example: '0 14 * * *' runs every day at 14:00 (2 PM).
       # See https://crontab.guru/ for help creating or testing cron expressions.
       expression: '0 14 * * *'
       # Whether this action should be executed (true/false)
-      enabled: true
-    - action: 'gearMaintenanceNotification'
-      expression: '0 14 * * *'
       enabled: false
     - action: 'appUpdateAvailableNotification'
       expression: '0 14 * * *'
