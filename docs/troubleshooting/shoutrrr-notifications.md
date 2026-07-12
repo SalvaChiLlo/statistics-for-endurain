@@ -41,7 +41,7 @@ Omitting the colon will cause authentication to fail.
 integrations:
   notifications:
     services:
-      - 'ntfy://:tk_sdu7lm0oiefvieqxe1i4852j02gzu@ntfy.yourhost.com/statsforstrava'
+      - 'ntfy://:tk_sdu7lm0oiefvieqxe1i4852j02gzu@ntfy.yourhost.com/statistics-for-endurain'
 ```
 
 > [!NOTE]

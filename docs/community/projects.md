@@ -1,30 +1,14 @@
 # Community projects
 
-Besides the official Dreeve app, several community members have built their own tools and extensions on top of the project.
-These projects can add extra functionality, provide alternative ways to manage your setup, or help automate certain workflows.
-
-Below is a list of community-made apps that integrate with or complement Dreeve.
+This is a small, independent fork focused on Endurain, so it doesn't (yet) have its own list of community-built
+add-ons. Several community projects exist for the upstream [Dreeve](https://github.com/robiningelbrecht/statistics-for-strava)
+(formerly statistics-for-strava) project this fork is based on — worth checking there if you're looking for
+tooling, keeping in mind they target Strava-based installs and may not be compatible with this fork's
+Endurain-only setup and database schema.
 
 > [!NOTE]
-> **Note** These projects are not officially maintained. If you run into issues, please report them in the relevant repository.
-
-## Stats for Strava config tool
-
-> A web app used to edit the stats for Strava configuration file
-
-https://github.com/dschoepel/stats-for-strava-config-tool
-
-## Apple Health to SfS
-
-> Lightweight webserver listening for Apple Health payloads to insert into Dreeve
-
-https://github.com/steveredden/health-to-sfs
-
-## Home Assistant - Dreeve
-
-> Single-container Home Assistant add-on draft for dreeve
-
-https://github.com/cgtobi/ha-apps/tree/main/statistics_for_strava
+> **Note** These projects are not officially maintained by this fork. If you run into issues, please report them
+> in the relevant repository.
 
 ## Use of Home Assistant weight-sensor
 
@@ -84,7 +68,7 @@ shell_command:
 Create a weekly automation to trigger the update. Example: every Monday at 15:00.
 
 ```yaml
-alias: Strava Update
+alias: Weight Update
 description: 
 triggers:
   - at: "15:00:00"

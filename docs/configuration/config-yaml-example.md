@@ -7,7 +7,7 @@ general:
   # Useful for distinguishing between multiple instances of the app.
   # Leave empty to disable.
   appSubTitle: null
-  # Optional, a link to your profile picture. Will be used to display in the nav bar and link to your Strava profile.
+  # Optional, a link to your profile picture. Will be used to display in the nav bar.
   # Any image can be used; a square format is recommended.
   # Leave empty to disable this feature.
   profilePictureUrl: null
@@ -56,10 +56,10 @@ general:
           from: 91
           to: null # Infinity and beyond.
       # 🔥 PRO tip: You can further refine your heart rate zones by specifying date ranges and sport types.
-      #    Read more about the possibilities on https://docs.dreeve.app/#/configuration/main-configuration?id=athlete-heart-rate-zones
+      #    Read more about the possibilities on /#/configuration/main-configuration?id=athlete-heart-rate-zones
     # History of weight (in kg or pounds, depending on appearance.unitSystem). Needed to calculate relative w/kg.
     # Make sure to replace the YYYY-MM-DD examples with your own weight history.
-    # Read more about the weight history on https://docs.dreeve.app/#/configuration/main-configuration?id=athlete-weight-history
+    # Read more about the weight history on /#/configuration/main-configuration?id=athlete-weight-history
     weightHistory:
       "YYYY-MM-DD": 100
     # Optional, history of FTP. Needed to calculate activity stress level.
@@ -87,7 +87,7 @@ appearance:
   dashboard:
     # The dashboard is built using widgets. You can enable or disable each widget, and set their respective width.
     # Leave this setting unchanged to use the default dashboard.
-    # For a detailed guide on how to override these defaults, visit: https://docs.dreeve.app/#/configuration/dashboard-widgets
+    # For a detailed guide on how to override these defaults, visit: /#/configuration/dashboard-widgets
     layout: null
   maps:
     # Specifies the color of polylines drawn on the maps. Accepts any valid CSS color.
@@ -116,41 +116,12 @@ appearance:
   photos:
     # Optional, an array of sport types for which photos should be hidden on the photos page. 
     # They will not be rendered, and they won't show up in the filters. 
-    # A full list of allowed options is available on https://docs.dreeve.app/#/configuration/main-configuration?id=supported-sport-types
+    # A full list of allowed options is available on /#/configuration/main-configuration?id=supported-sport-types
     hidePhotosForSportTypes: []
   # With this list you can decide the order the sport types will be rendered in. For example in the tabs on the dashboard.
   # You don't have to include all sport types. Sport types not included in this list will be rendered by the app default.
-  # A full list of allowed options is available on https://docs.dreeve.app/#/configuration/main-configuration?id=supported-sport-types 
+  # A full list of allowed options is available on /#/configuration/main-configuration?id=supported-sport-types 
   sportTypesSortingOrder: []  
-import:
-  # Strava API has rate limits (https://docs.dreeve.app/#/troubleshooting/faq?id=why-does-it-take-so-long-to-import-my-data),
-  # to make sure we don't hit the rate limit, we want to cap the number of new activities processed
-  # per import. Considering there's a 1000 request per day limit and importing one new activity can
-  # take up to 3 API calls, 250 should be a safe number.
-  numberOfNewActivitiesToProcessPerImport: 250
-  # Sport types to import. Leave empty to import all sport types
-  # A full list of allowed options is available on https://docs.dreeve.app/#/configuration/main-configuration?id=supported-sport-types 
-  # ⚠️ Changing this setting after activities have already been imported will delete all activities that are not included in the list of sport types.
-  sportTypesToImport: []
-  # Activity visibilities to import. Leave empty to import all visibilities
-  # This list can be combined with sportTypesToImport.
-  # Allowed values: ["everyone", "followers_only", "only_me"]
-  # ⚠️ Changing this setting after activities have already been imported will delete all activities that are not included in the list of visibilities.
-  activityVisibilitiesToImport: []
-  # Optional, the date (YYYY-MM-DD) from which you want to start importing activities. 
-  # Any activity recorded before this date, will not be imported.
-  # This can be used if you want to skip the import of older activities. Leave empty to disable.
-  # ⚠️ Changing this setting after activities have already been imported will delete all activities recorded before the specified date.
-  skipActivitiesRecordedBefore: null
-  # An array of activity ids to skip during import. 
-  # This allows you to skip specific activities during import.
-  # ["123456789", "987654321"]
-  activitiesToSkipDuringImport: []
-  # Setting this to true will import segment details. This means each segment will need an extra Strava API call to fetch the segment details.
-  # This is required to be able to display a map of the segment.
-  # Setting this to true will increase the import time significantly if you have a lot of segments.
-  # Each segment only needs to be imported once, so this will not affect the import time for subsequent imports.
-  optInToSegmentDetailImport: false
 metrics:
   # An array of activity ids to exclude from peak power outputs. 
   # This allows you to blacklist specific activity IDs from the peak power calculation.
@@ -172,7 +143,7 @@ metrics:
       showInDashboardWidget: true
       # The sport types to include in the Eddington score for this tab.
       # Only sport types that belong to the same activity type (category) can be combined.
-      # For a complete list of supported sport and activity types, visit: https://docs.dreeve.app/#/configuration/main-configuration?id=supported-sport-types
+      # For a complete list of supported sport and activity types, visit: /#/configuration/main-configuration?id=supported-sport-types
       sportTypesToInclude: ['Ride', 'MountainBikeRide', 'GravelRide', 'VirtualRide']
     - label: 'Run'
       showInNavBar: true
@@ -194,7 +165,7 @@ integrations:
     services: []
     # - 'ntfy://ntfy.sh/topic'
   # All configuration options related to AI integrations.
-  # For a comprehensive explanation on how to set up this integration, visit: https://docs.dreeve.app/#/configuration/ai-integration
+  # For a comprehensive explanation on how to set up this integration, visit: /#/configuration/ai-integration
   ai:
     # Enable or disable AI features.
     # ⚠️ Use caution when enabling this feature if your app is publicly accessible!
@@ -213,12 +184,12 @@ integrations:
       url: 'http://host.docker.internal:11434/api'
     # agent:
     #   commands:
-    #    For a detailed guide on how to configure pre-defined chat commands, visit: https://docs.dreeve.app/#/configuration/ai-integration?id=pre-defining-chat-commands
+    #    For a detailed guide on how to configure pre-defined chat commands, visit: /#/configuration/ai-integration?id=pre-defining-chat-commands
 daemon:
   # A list of actions that the application runs at regular intervals according to their defined schedule.
   # Notification-related actions require the integrations.notifications.ntfyUrl setting to be configured.
   # ⚠️ This configuration only applies if you have set up the daemon container:
-  #   https://docs.dreeve.app/#/getting-started/installation?id=docker-composeyml
+  #   /#/getting-started/installation?id=docker-composeyml
   cron:
       # Action name. Allowed values: importDataAndBuildApp, gearMaintenanceNotification, appUpdateAvailableNotification
     - action: 'importDataAndBuildApp'

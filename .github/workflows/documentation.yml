@@ -1,11 +1,9 @@
 name: Deploy documentation pages
-# Disabled: the ./docs content is still upstream's Strava-focused documentation
-# (OAuth, webhooks, etc. that have been removed from this fork) and publishing
-# it via GitHub Pages would be actively misleading. Re-enable the `push: tags`
-# trigger once the docs have been rewritten for this fork. Can still be run
-# manually via workflow_dispatch if ever needed.
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read

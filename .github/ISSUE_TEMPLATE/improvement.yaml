@@ -2,7 +2,7 @@ name: Improvement
 description: Suggest an idea or improvement
 labels: ["improvement"]
 assignees:
-  - robiningelbrecht
+  - SalvaChiLlo
 body:
   - type: textarea
     id: the-improvement

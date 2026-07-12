@@ -1,10 +1,10 @@
 # Proxmox
 
 A lot of people use [Proxmox](https://www.proxmox.com/en/) to drive their self-hosted environment.
-This guide will help you set up Dreeve on a Proxmox virtual machine.
+This guide will help you set up the app on a Proxmox virtual machine.
 
 > [!IMPORTANT]
-> Thanks to <a href="https://github.com/apachelance" target="_blank">apachelance</a> for creating this guide and sharing it with the community.
+> Thanks to <a href="https://github.com/apachelance" target="_blank">apachelance</a> for creating the original version of this guide and sharing it with the community.
 
 > [!NOTE]
 > **Note** Depending on your docker installation or plugin, you may need to use either _docker compose_ or _docker-compose_.
@@ -28,16 +28,17 @@ systemctl enable docker
 ### Create a directory
 
 ```bash
-mkdir -p /opt/dreeve
-cd /opt/dreeve
+mkdir -p /opt/statistics-for-endurain
+cd /opt/statistics-for-endurain
 ```
 
-Now follow the instructions on the [installation page](/getting-started/installation.md) to set up Dreeve.
+Now follow the instructions on the [installation page](/getting-started/installation.md) to set up the app,
+including the required `APP_SECRET`, `APP_URL` and Endurain service-account variables in your `.env` file.
 
 ### Permissions
 
-Stop the container in your Proxmox UI and open the console of the proxmox host (not the Dreeve container!). 
-Now you need to modify the container configuration file. 
+Stop the container in your Proxmox UI and open the console of the proxmox host (not the app container!).
+Now you need to modify the container configuration file.
 Please choose the file according to your Proxmox container ID (e.g. `110.conf` or `104.conf`)
 
 ```bash
@@ -57,34 +58,20 @@ lxc.apparmor.allow_nesting: 1
 
 ### Restart the container
 
-* Start your dreeve container using the Proxmox GUI
+* Start your container using the Proxmox GUI
 * Enter the console of the container and start docker
 
 ```bash
 docker-compose up -d
 ```
 
-### Strava API integration
+### Final steps
 
-Now follow the instructions on the [prerequisites page](/getting-started/prerequisites.md) to create the API keys/secret on the Strava website 
-and add the keys to your .env file in your dreeve directory using `nano .env`
-
-Then recreate the container:
+Once the container is up and your `.env` points at your Endurain instance and service account, recreate it
+to pick up any further `.env` changes:
 
 ```bash
 docker-compose up -d --force-recreate
-```
-
-### Final steps
-
-* Open the URL auf your container (IP:8080), choose "Connect with Strava".
-* A new refresh token will be generated
-* Add it to the .env file in your container using `nano .env`
-* Restart your container:
-
-```bash
-docker-compose stop
-docker-compose start
 ```
 
 > [!TIP]

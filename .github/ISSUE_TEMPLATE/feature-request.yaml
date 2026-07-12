@@ -2,7 +2,7 @@ name: Feature request
 description: Suggest a new feature
 labels: ["new feature"]
 assignees:
-  - robiningelbrecht
+  - SalvaChiLlo
 body:
   - type: markdown
     attributes:
