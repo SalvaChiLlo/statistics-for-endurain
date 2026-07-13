@@ -189,6 +189,7 @@ final readonly class CombinedStreamProfileCharts
             }
 
             $series[] = [
+                'id' => $yAxisStreamType->value,
                 'name' => CombinedStreamType::PACE === $yAxisStreamType ? '__pace' : $yAxisSuffix,
                 'xAxisIndex' => $index,
                 'yAxisIndex' => $index,
