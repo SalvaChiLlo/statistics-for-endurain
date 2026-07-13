@@ -168,7 +168,10 @@ final class CombinedActivityStream
         $points = [];
         foreach ($this->data as $row) {
             $coordinate = $row[$coordinateIndex] ?? null;
-            if (!is_array($coordinate) || 2 !== count($coordinate)) {
+            if (!is_array($coordinate)) {
+                continue;
+            }
+            if (2 !== count($coordinate)) {
                 continue;
             }
 
