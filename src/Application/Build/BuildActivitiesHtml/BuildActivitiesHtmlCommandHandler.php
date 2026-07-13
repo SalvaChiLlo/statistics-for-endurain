@@ -188,11 +188,13 @@ final readonly class BuildActivitiesHtmlCommandHandler implements CommandHandler
             $profileChart = null;
             $profileChartHeight = 0;
             $coordinateMap = [];
+            $routeMetrics = [];
             try {
                 $combinedActivityStream = $this->combinedActivityStreamRepository->findOneForActivityAndUnitSystem(
                     activityId: $activity->getId(),
                     unitSystem: $unitSystem
                 );
+                $routeMetrics = $combinedActivityStream->getCoordinatesWithMetrics();
 
                 $maximumNumberOfDigits = $combinedActivityStream->getMaximumNumberOfDigits();
                 $distances = $combinedActivityStream->getDistances();
@@ -237,12 +239,22 @@ final readonly class BuildActivitiesHtmlCommandHandler implements CommandHandler
             }
 
             $polylinesFileLocation = sprintf('activity/%s/polylines.json', $unprefixedActivityId);
+            $routeMetricsFileLocation = sprintf('activity/%s/route-metrics.json', $unprefixedActivityId);
+            $hasRouteMetrics = false;
             if (($leafletMap = $activity->getLeafletMap()) instanceof LeafletMap) {
                 $coordinates = $coordinateMap ?: $activity->getEncodedPolyline()?->decodeAndPairLatLng();
                 $this->buildApiStorage->write(
                     $polylinesFileLocation,
                     (string) Json::encodeAndCompress([$coordinates]),
                 );
+
+                if ([] !== $routeMetrics) {
+                    $hasRouteMetrics = true;
+                    $this->buildApiStorage->write(
+                        $routeMetricsFileLocation,
+                        (string) Json::encodeAndCompress($routeMetrics),
+                    );
+                }
             }
             $templateName = sprintf('html/activity/%s.html.twig', $activity->getSportType()->getTemplateName());
             $gpxFileLocation = sprintf('api/activity/%s/route.gpx', $unprefixedActivityId);
@@ -260,6 +272,7 @@ final readonly class BuildActivitiesHtmlCommandHandler implements CommandHandler
                     'activity' => $activity,
                     'leaflet' => $leafletMap instanceof LeafletMap ? [
                         'polylineUrl' => $polylinesFileLocation,
+                        'routeMetricsUrl' => $hasRouteMetrics ? $routeMetricsFileLocation : null,
                         'map' => $leafletMap,
                     ] : null,
                     'gpxLink' => $activityHasTimeStream ? $gpxFileLocation : null,

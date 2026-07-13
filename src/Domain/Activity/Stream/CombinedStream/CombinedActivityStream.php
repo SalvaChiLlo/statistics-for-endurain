@@ -139,6 +139,64 @@ final class CombinedActivityStream
         return array_values(array_filter(array_column($this->data, $coordinateIndex)));
     }
 
+    /**
+     * Returns the route coordinates paired with their corresponding metric values, one entry per sample row.
+     *
+     * Unlike getCoordinates()/getChartStreamData(), which are each built independently from $this->data and can
+     * therefore end up with different lengths/indices (getCoordinates() drops rows with no coordinate, while
+     * getChartStreamData() keeps every row), this method reads coordinate and metric values from the SAME row so
+     * the returned points are guaranteed to be correctly paired.
+     *
+     * @return array<int, array{lat: float, lng: float, speed: ?float, heartrate: ?float, cadence: ?float, elevation: ?float}>
+     */
+    public function getCoordinatesWithMetrics(): array
+    {
+        $streamTypes = $this->streamTypes->toArray();
+        $coordinateIndex = array_search(CombinedStreamType::LAT_LNG, $streamTypes, true);
+        if (false === $coordinateIndex) {
+            return [];
+        }
+
+        $speedIndex = array_search(CombinedStreamType::VELOCITY, $streamTypes, true);
+        $heartRateIndex = array_search(CombinedStreamType::HEART_RATE, $streamTypes, true);
+        $elevationIndex = array_search(CombinedStreamType::ALTITUDE, $streamTypes, true);
+        $cadenceIndex = array_search(CombinedStreamType::CADENCE, $streamTypes, true);
+        if (false === $cadenceIndex) {
+            $cadenceIndex = array_search(CombinedStreamType::STEPS_PER_MINUTE, $streamTypes, true);
+        }
+
+        $points = [];
+        foreach ($this->data as $row) {
+            $coordinate = $row[$coordinateIndex] ?? null;
+            if (!is_array($coordinate) || 2 !== count($coordinate)) {
+                continue;
+            }
+
+            $points[] = [
+                'lat' => (float) $coordinate[0],
+                'lng' => (float) $coordinate[1],
+                'speed' => $this->readMetricValue($row, $speedIndex),
+                'heartrate' => $this->readMetricValue($row, $heartRateIndex),
+                'cadence' => $this->readMetricValue($row, $cadenceIndex),
+                'elevation' => $this->readMetricValue($row, $elevationIndex),
+            ];
+        }
+
+        return $points;
+    }
+
+    /**
+     * @param array<mixed> $row
+     */
+    private function readMetricValue(array $row, int|string|false $index): ?float
+    {
+        if (false === $index || !isset($row[$index])) {
+            return null;
+        }
+
+        return (float) $row[$index];
+    }
+
     public function getStreamTypesForCharts(): CombinedStreamTypes
     {
         $this->buildChartStreamDataCache();

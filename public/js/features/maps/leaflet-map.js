@@ -1,6 +1,7 @@
 import {fetchJson} from "../../utils";
 import L from 'leaflet';
 import {createMapToolsControl} from "./leaflet-controls";
+import {buildGradientSegments, DEFAULT_METRIC} from "./route-gradient";
 import './ctrl-scroll-zoom';
 
 export default class LeafletMap {
@@ -28,15 +29,31 @@ export default class LeafletMap {
     async addRoutes() {
         const featureGroup = L.featureGroup();
         const polylines = await fetchJson(this.data.polylineUrl);
+        const routeMetrics = await this.fetchRouteMetrics();
 
         for (const coordinates of polylines) {
-            L.polyline(coordinates, {
-                color: this.config.polylineColor,
-                weight: 2,
-                opacity: 0.9,
-                lineJoin: 'round',
-                smoothFactor: 2.0
-            }).addTo(featureGroup);
+            const gradientSegments = routeMetrics && routeMetrics.length === coordinates.length
+                ? buildGradientSegments(routeMetrics, DEFAULT_METRIC)
+                : null;
+
+            if (gradientSegments) {
+                for (const segment of gradientSegments) {
+                    L.polyline(segment.latlngs, {
+                        color: segment.color,
+                        weight: 3,
+                        opacity: 0.9,
+                        lineJoin: 'round',
+                    }).addTo(featureGroup);
+                }
+            } else {
+                L.polyline(coordinates, {
+                    color: this.config.polylineColor,
+                    weight: 2,
+                    opacity: 0.9,
+                    lineJoin: 'round',
+                    smoothFactor: 2.0
+                }).addTo(featureGroup);
+            }
 
             if (this.data.showStartMarker) {
                 this.addCircleMarker(coordinates[0], '#3ba272').addTo(featureGroup);
@@ -56,6 +73,19 @@ export default class LeafletMap {
         featureGroup.addTo(this.map);
         this.map.fitBounds(featureGroup.getBounds(), {maxZoom: this.data.maxZoom});
         this.map.addControl(createMapToolsControl({bounds: featureGroup.getBounds()}));
+    }
+
+    async fetchRouteMetrics() {
+        if (!this.data.routeMetricsUrl) {
+            return null;
+        }
+
+        try {
+            return await fetchJson(this.data.routeMetricsUrl);
+        } catch (error) {
+            console.error('Failed to load route metrics:', error);
+            return null;
+        }
     }
 
     async connectToEChart() {
