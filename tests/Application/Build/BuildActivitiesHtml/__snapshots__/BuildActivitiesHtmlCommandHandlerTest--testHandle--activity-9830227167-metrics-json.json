@@ -167,6 +167,7 @@
     ],
     "series": [
         {
+            "id": "velocity",
             "name": "km/h",
             "xAxisIndex": 0,
             "yAxisIndex": 0,
@@ -214,6 +215,7 @@
             }
         },
         {
+            "id": "heartrate",
             "name": "bpm",
             "xAxisIndex": 1,
             "yAxisIndex": 1,
