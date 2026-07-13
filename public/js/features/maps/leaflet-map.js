@@ -17,6 +17,7 @@ const CHART_SERIES_TO_ROUTE_METRIC = {
     cadence: 'cadence',
     spm: 'cadence',
     altitude: 'elevation',
+    temp: 'temperature',
 };
 
 export default class LeafletMap {

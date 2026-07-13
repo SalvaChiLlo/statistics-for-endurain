@@ -35,7 +35,7 @@ function isNumber(value) {
 }
 
 /**
- * @param {Array<{lat: number, lng: number, speed: ?number, heartrate: ?number, cadence: ?number, elevation: ?number}>} points
+ * @param {Array<{lat: number, lng: number, speed: ?number, heartrate: ?number, cadence: ?number, elevation: ?number, temperature: ?number}>} points
  * @param {string} metric
  * @returns {Array<{latlngs: Array<[number, number]>, color: string}>|null} null when there is not enough data
  *          for this metric, so the caller can fall back to the flat-color rendering.

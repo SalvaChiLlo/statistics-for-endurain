@@ -147,7 +147,7 @@ final class CombinedActivityStream
      * getChartStreamData() keeps every row), this method reads coordinate and metric values from the SAME row so
      * the returned points are guaranteed to be correctly paired.
      *
-     * @return array<int, array{lat: float, lng: float, speed: ?float, heartrate: ?float, cadence: ?float, elevation: ?float}>
+     * @return array<int, array{lat: float, lng: float, speed: ?float, heartrate: ?float, cadence: ?float, elevation: ?float, temperature: ?float}>
      */
     public function getCoordinatesWithMetrics(): array
     {
@@ -164,6 +164,7 @@ final class CombinedActivityStream
         if (false === $cadenceIndex) {
             $cadenceIndex = array_search(CombinedStreamType::STEPS_PER_MINUTE, $streamTypes, true);
         }
+        $temperatureIndex = array_search(CombinedStreamType::TEMP, $streamTypes, true);
 
         $points = [];
         foreach ($this->data as $row) {
@@ -182,6 +183,7 @@ final class CombinedActivityStream
                 'heartrate' => $this->readMetricValue($row, $heartRateIndex),
                 'cadence' => $this->readMetricValue($row, $cadenceIndex),
                 'elevation' => $this->readMetricValue($row, $elevationIndex),
+                'temperature' => $this->readMetricValue($row, $temperatureIndex),
             ];
         }
 

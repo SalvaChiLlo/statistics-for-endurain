@@ -18,6 +18,15 @@ class CombinedStreamTypesTest extends TestCase
         );
     }
 
+    #[DataProvider('activityTypeProvider')]
+    public function testOthersForHasTempAsFirstItemSoItRendersLastAfterReverse(ActivityType $activityType): void
+    {
+        $this->assertSame(
+            CombinedStreamType::TEMP,
+            CombinedStreamTypes::othersFor($activityType)->getFirst()
+        );
+    }
+
     /**
      * @return array<int, array{0: ActivityType}>
      */
