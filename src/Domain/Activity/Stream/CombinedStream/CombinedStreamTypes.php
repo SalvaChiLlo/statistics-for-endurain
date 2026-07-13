@@ -26,6 +26,7 @@ final class CombinedStreamTypes extends Collection
                 CombinedStreamType::WATTS,
                 CombinedStreamType::STEPS_PER_MINUTE,
                 CombinedStreamType::PACE,
+                CombinedStreamType::TEMP,
             ]);
         }
 
@@ -35,6 +36,7 @@ final class CombinedStreamTypes extends Collection
             CombinedStreamType::WATTS,
             CombinedStreamType::CADENCE,
             CombinedStreamType::VELOCITY,
+            CombinedStreamType::TEMP,
         ]);
     }
 }
