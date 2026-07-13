@@ -1,3 +1,11 @@
+# [v5.6.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.5.0...v5.6.0)
+
+## Features
+* ISSUE #66: Show temperature as a row in the activity detail page's combined profile chart, alongside heart rate/speed/cadence/elevation, for activities with recorded temperature data (FIT-file and Endurain imports), with correct unit display for both metric and imperial
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
 # [v5.5.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.4.0...v5.5.0)
 
 ## Features
