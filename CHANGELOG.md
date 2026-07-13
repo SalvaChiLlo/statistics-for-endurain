@@ -1,3 +1,12 @@
+# [v5.5.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.4.0...v5.5.0)
+
+## Features
+* ISSUE #61: Color activity route polylines with a gradient based on a metric (speed, heart rate, cadence, elevation), defaulting to speed
+* ISSUE #62: Sync the route gradient to the activity's combined profile chart on hover — hovering a chart row recolors the route by that metric, reverting to the default metric when the mouse leaves the chart
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
 # [v5.4.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.3.0...v5.4.0)
 
 ## Bug fixes
