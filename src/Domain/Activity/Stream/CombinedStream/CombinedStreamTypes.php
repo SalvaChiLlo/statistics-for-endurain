@@ -21,22 +21,22 @@ final class CombinedStreamTypes extends Collection
     {
         if (in_array($activityType, [ActivityType::RUN, ActivityType::WALK])) {
             return self::fromArray([
+                CombinedStreamType::TEMP,
                 CombinedStreamType::ALTITUDE,
                 CombinedStreamType::HEART_RATE,
                 CombinedStreamType::WATTS,
                 CombinedStreamType::STEPS_PER_MINUTE,
                 CombinedStreamType::PACE,
-                CombinedStreamType::TEMP,
             ]);
         }
 
         return self::fromArray([
+            CombinedStreamType::TEMP,
             CombinedStreamType::ALTITUDE,
             CombinedStreamType::HEART_RATE,
             CombinedStreamType::WATTS,
             CombinedStreamType::CADENCE,
             CombinedStreamType::VELOCITY,
-            CombinedStreamType::TEMP,
         ]);
     }
 }
