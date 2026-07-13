@@ -20,6 +20,7 @@ use App\Infrastructure\Mutex\LockName;
 use App\Infrastructure\Mutex\Mutex;
 use App\Infrastructure\Time\Format\ProvideTimeFormats;
 use App\Infrastructure\ValueObject\Measurement\Length\Meter;
+use App\Infrastructure\ValueObject\Measurement\Temperature\Celsius;
 use App\Infrastructure\ValueObject\Measurement\Velocity\MetersPerSecond;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
@@ -168,6 +169,7 @@ final readonly class CalculateCombinedStreams implements CalculateActivityMetric
                             CombinedStreamType::PACE => MetersPerSecond::from($value)->toSecPerKm()->toUnitSystem($unitSystem)->toInt(),
                             CombinedStreamType::STEPS_PER_MINUTE => $value * 2,
                             CombinedStreamType::WATTS => round($value),
+                            CombinedStreamType::TEMP => round(Celsius::from($value)->toUnitSystem($unitSystem)->toFloat(), 1),
                             default => $value,
                         };
                     }

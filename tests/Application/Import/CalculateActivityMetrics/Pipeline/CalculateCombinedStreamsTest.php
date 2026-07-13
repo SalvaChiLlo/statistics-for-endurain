@@ -96,6 +96,39 @@ class CalculateCombinedStreamsTest extends ContainerTestCase
         $this->assertCompressedDatabaseQueryMatchesSnapshot('SELECT * FROM CombinedActivityStream');
     }
 
+    public function testProcessWithTemperature(): void
+    {
+        $output = new SpyOutput();
+
+        $this->provideGeneralTestDataWithTemperature(sportType: SportType::RIDE);
+        $this->calculateCombinedStreams->process($output);
+        $this->assertCompressedDatabaseQueryMatchesSnapshot('SELECT * FROM CombinedActivityStream');
+    }
+
+    public function testProcessWithTemperatureImperial(): void
+    {
+        $output = new SpyOutput();
+
+        $this->provideGeneralTestDataWithTemperature(sportType: SportType::RIDE);
+
+        $settingsRepository = $this->getContainer()->get(SettingsRepository::class);
+        $settingsRepository->save(SettingsGroup::APPEARANCE, ['unitSystem' => UnitSystem::IMPERIAL->value]);
+
+        new CalculateCombinedStreams(
+            activityRepository: $this->getContainer()->get(ActivityRepository::class),
+            combinedActivityStreamRepository: $this->getContainer()->get(CombinedActivityStreamRepository::class),
+            activityStreamRepository: $this->getContainer()->get(ActivityStreamRepository::class),
+            settingsRepository: $settingsRepository,
+            mutex: new Mutex(
+                connection: $this->getConnection(),
+                clock: PausedClock::fromString('2025-12-04'),
+                lockName: LockName::IMPORT_DATA_OR_BUILD_APP,
+            )
+        )->process($output);
+
+        $this->assertCompressedDatabaseQueryMatchesSnapshot('SELECT * FROM CombinedActivityStream');
+    }
+
     public function testProcessWhenStreamDataIsMissingOrEmpty(): void
     {
         $output = new SpyOutput();
@@ -238,6 +271,20 @@ class CalculateCombinedStreamsTest extends ContainerTestCase
                     null,
                     [51.200700, 3.216900],
                 ])
+                ->build()
+        );
+    }
+
+    private function provideGeneralTestDataWithTemperature(SportType $sportType): void
+    {
+        $this->provideGeneralTestData(sportType: $sportType, omitDistanceStream: false);
+
+        $streamRepository = $this->getContainer()->get(ActivityStreamRepository::class);
+        $streamRepository->add(
+            ActivityStreamBuilder::fromDefaults()
+                ->withActivityId(ActivityId::fromUnprefixed('one'))
+                ->withStreamType(StreamType::TEMP)
+                ->withData([12, 12, 13, 14, 15, 15, 15, 16, 17, 17, 18])
                 ->build()
         );
     }
