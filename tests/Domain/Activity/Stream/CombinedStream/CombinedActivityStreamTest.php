@@ -88,8 +88,8 @@ class CombinedActivityStreamTest extends TestCase
 
         $this->assertSame(
             [
-                ['lat' => 51.1, 'lng' => 3.1, 'speed' => 10.0, 'heartrate' => 140.0, 'cadence' => null, 'elevation' => 5.0],
-                ['lat' => 51.3, 'lng' => 3.3, 'speed' => 20.0, 'heartrate' => 160.0, 'cadence' => null, 'elevation' => 7.0],
+                ['lat' => 51.1, 'lng' => 3.1, 'speed' => 10.0, 'heartrate' => 140.0, 'cadence' => null, 'elevation' => 5.0, 'temperature' => null],
+                ['lat' => 51.3, 'lng' => 3.3, 'speed' => 20.0, 'heartrate' => 160.0, 'cadence' => null, 'elevation' => 7.0, 'temperature' => null],
             ],
             $stream->getCoordinatesWithMetrics()
         );
@@ -117,8 +117,8 @@ class CombinedActivityStreamTest extends TestCase
 
         $this->assertSame(
             [
-                ['lat' => 51.1, 'lng' => 3.1, 'speed' => 10.0, 'heartrate' => null, 'cadence' => null, 'elevation' => null],
-                ['lat' => 51.4, 'lng' => 3.4, 'speed' => 25.0, 'heartrate' => null, 'cadence' => null, 'elevation' => null],
+                ['lat' => 51.1, 'lng' => 3.1, 'speed' => 10.0, 'heartrate' => null, 'cadence' => null, 'elevation' => null, 'temperature' => null],
+                ['lat' => 51.4, 'lng' => 3.4, 'speed' => 25.0, 'heartrate' => null, 'cadence' => null, 'elevation' => null, 'temperature' => null],
             ],
             $stream->getCoordinatesWithMetrics()
         );
@@ -141,7 +141,31 @@ class CombinedActivityStreamTest extends TestCase
 
         $this->assertSame(
             [
-                ['lat' => 51.1, 'lng' => 3.1, 'speed' => null, 'heartrate' => null, 'cadence' => 170.0, 'elevation' => null],
+                ['lat' => 51.1, 'lng' => 3.1, 'speed' => null, 'heartrate' => null, 'cadence' => 170.0, 'elevation' => null, 'temperature' => null],
+            ],
+            $stream->getCoordinatesWithMetrics()
+        );
+    }
+
+    public function testGetCoordinatesWithMetricsIncludesTemperature(): void
+    {
+        $stream = CombinedActivityStream::fromState(
+            activityId: ActivityId::fromUnprefixed(1),
+            unitSystem: UnitSystem::METRIC,
+            streamTypes: CombinedStreamTypes::fromArray([
+                CombinedStreamType::LAT_LNG,
+                CombinedStreamType::VELOCITY,
+                CombinedStreamType::TEMP,
+            ]),
+            data: [
+                [[51.1, 3.1], 10.0, 18.5],
+            ],
+            maxYAxisValue: 300,
+        );
+
+        $this->assertSame(
+            [
+                ['lat' => 51.1, 'lng' => 3.1, 'speed' => 10.0, 'heartrate' => null, 'cadence' => null, 'elevation' => null, 'temperature' => 18.5],
             ],
             $stream->getCoordinatesWithMetrics()
         );
