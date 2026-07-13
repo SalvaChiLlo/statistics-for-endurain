@@ -95,6 +95,35 @@ class CombinedActivityStreamTest extends TestCase
         );
     }
 
+    public function testGetCoordinatesWithMetricsSkipsRowsWithMalformedCoordinate(): void
+    {
+        $stream = CombinedActivityStream::fromState(
+            activityId: ActivityId::fromUnprefixed(1),
+            unitSystem: UnitSystem::METRIC,
+            streamTypes: CombinedStreamTypes::fromArray([
+                CombinedStreamType::LAT_LNG,
+                CombinedStreamType::VELOCITY,
+            ]),
+            data: [
+                [[51.1, 3.1], 10.0],
+                // A coordinate that is an array but doesn't have exactly [lat, lng] should be skipped too,
+                // not just a missing/null coordinate.
+                [[51.2], 15.0],
+                [[51.3, 3.3, 0.0], 20.0],
+                [[51.4, 3.4], 25.0],
+            ],
+            maxYAxisValue: 300,
+        );
+
+        $this->assertSame(
+            [
+                ['lat' => 51.1, 'lng' => 3.1, 'speed' => 10.0, 'heartrate' => null, 'cadence' => null, 'elevation' => null],
+                ['lat' => 51.4, 'lng' => 3.4, 'speed' => 25.0, 'heartrate' => null, 'cadence' => null, 'elevation' => null],
+            ],
+            $stream->getCoordinatesWithMetrics()
+        );
+    }
+
     public function testGetCoordinatesWithMetricsFallsBackToStepsPerMinuteForCadence(): void
     {
         $stream = CombinedActivityStream::fromState(
