@@ -1,3 +1,12 @@
+# [v5.6.1](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.6.0...v5.6.1)
+
+## Bug fixes
+* ISSUE #69: Fixed the Temperature row rendering at the top of the activity profile chart instead of the bottom
+* ISSUE #69: Fixed hovering the Temperature row not recoloring the route's gradient on the map — it silently fell back to speed because temperature was missing from the gradient-coloring data pipeline and the chart-series-to-metric mapping
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
 # [v5.6.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.5.0...v5.6.0)
 
 ## Features
