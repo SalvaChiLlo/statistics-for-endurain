@@ -1,0 +1,264 @@
+{
+    "animation": false,
+    "axisPointer": {
+        "link": [
+            {
+                "xAxisIndex": "all"
+            }
+        ]
+    },
+    "toolbox": {
+        "show": true,
+        "top": "0px",
+        "feature": {
+            "dataZoom": {
+                "show": true,
+                "yAxisIndex": "none"
+            },
+            "restore": {
+                "show": true
+            }
+        }
+    },
+    "tooltip": {
+        "trigger": "axis",
+        "formatter": "callback:formatCombinedProfileTooltip"
+    },
+    "dataZoom": [
+        {
+            "type": "slider",
+            "show": true,
+            "top": "30px",
+            "height": "25px",
+            "left": "65px",
+            "right": "20px",
+            "xAxisIndex": [
+                0,
+                1
+            ],
+            "throttle": 100,
+            "showDetail": false,
+            "minValueSpan": 60,
+            "dataBackground": {
+                "lineStyle": {
+                    "opacity": 0
+                },
+                "areaStyle": {
+                    "opacity": 0
+                }
+            },
+            "selectedDataBackground": {
+                "lineStyle": {
+                    "opacity": 0
+                },
+                "areaStyle": {
+                    "opacity": 0
+                }
+            }
+        }
+    ],
+    "grid": [
+        {
+            "left": "65px",
+            "right": "20px",
+            "top": "90px",
+            "height": "120px",
+            "containLabel": false
+        },
+        {
+            "left": "65px",
+            "right": "20px",
+            "top": "215px",
+            "height": "120px",
+            "containLabel": false
+        }
+    ],
+    "xAxis": [
+        {
+            "gridIndex": 0,
+            "position": "top",
+            "type": "category",
+            "boundaryGap": false,
+            "axisLabel": {
+                "show": true,
+                "formatter": "{value} "
+            },
+            "data": [
+                "0:00",
+                "0:10",
+                "0:20",
+                "0:30"
+            ],
+            "min": 0,
+            "axisTick": {
+                "show": false
+            }
+        },
+        {
+            "gridIndex": 1,
+            "position": "bottom",
+            "type": "category",
+            "boundaryGap": false,
+            "axisLabel": {
+                "show": true,
+                "formatter": "{value} km"
+            },
+            "data": [
+                0,
+                0.1,
+                0.2,
+                0.3
+            ],
+            "min": 0,
+            "axisTick": {
+                "show": false
+            }
+        }
+    ],
+    "yAxis": [
+        {
+            "gridIndex": 0,
+            "type": "value",
+            "name": "Speed",
+            "nameRotate": 90,
+            "nameLocation": "middle",
+            "nameGap": 10,
+            "min": 18,
+            "max": 26,
+            "splitLine": {
+                "show": false
+            },
+            "axisLabel": {
+                "show": true,
+                "customValues": [
+                    18,
+                    26
+                ],
+                "formatter": null,
+                "color": "#aaa",
+                "verticalAlignMaxLabel": "top",
+                "verticalAlignMinLabel": "bottom"
+            }
+        },
+        {
+            "gridIndex": 1,
+            "type": "value",
+            "name": "Heart rate",
+            "nameRotate": 90,
+            "nameLocation": "middle",
+            "nameGap": 10,
+            "min": 120,
+            "max": 153,
+            "splitLine": {
+                "show": false
+            },
+            "axisLabel": {
+                "show": true,
+                "customValues": [
+                    120,
+                    153
+                ],
+                "formatter": null,
+                "color": "#aaa",
+                "verticalAlignMaxLabel": "top",
+                "verticalAlignMinLabel": "bottom"
+            }
+        }
+    ],
+    "series": [
+        {
+            "name": "km/h",
+            "xAxisIndex": 0,
+            "yAxisIndex": 0,
+            "markArea": {
+                "data": [
+                    [
+                        {
+                            "xAxis": "min",
+                            "yAxis": 26,
+                            "itemStyle": {
+                                "color": "#3E444D"
+                            },
+                            "emphasis": {
+                                "disabled": true
+                            }
+                        },
+                        {
+                            "xAxis": "max",
+                            "yAxis": 18
+                        }
+                    ]
+                ]
+            },
+            "data": [
+                20,
+                22,
+                18,
+                25
+            ],
+            "type": "line",
+            "showSymbol": false,
+            "progressive": 5000,
+            "progressiveThreshold": 10000,
+            "color": "#fac858",
+            "smooth": true,
+            "lineStyle": {
+                "width": 0
+            },
+            "emphasis": {
+                "disabled": true
+            },
+            "areaStyle": {
+                "opacity": 1,
+                "origin": "start"
+            }
+        },
+        {
+            "name": "bpm",
+            "xAxisIndex": 1,
+            "yAxisIndex": 1,
+            "markArea": {
+                "data": [
+                    [
+                        {
+                            "xAxis": "min",
+                            "yAxis": 153,
+                            "itemStyle": {
+                                "color": "#3E444D"
+                            },
+                            "emphasis": {
+                                "disabled": true
+                            }
+                        },
+                        {
+                            "xAxis": "max",
+                            "yAxis": 120
+                        }
+                    ]
+                ]
+            },
+            "data": [
+                120,
+                130,
+                140,
+                150
+            ],
+            "type": "line",
+            "showSymbol": false,
+            "progressive": 5000,
+            "progressiveThreshold": 10000,
+            "color": "#ee6666",
+            "smooth": true,
+            "lineStyle": {
+                "width": 0
+            },
+            "emphasis": {
+                "disabled": true
+            },
+            "areaStyle": {
+                "opacity": 1,
+                "origin": "start"
+            }
+        }
+    ]
+}

@@ -1,0 +1,34 @@
+[
+    {
+        "lat": 51.2,
+        "lng": 3.18,
+        "speed": 20,
+        "heartrate": 120,
+        "cadence": null,
+        "elevation": null
+    },
+    {
+        "lat": 51.201,
+        "lng": 3.185,
+        "speed": 22,
+        "heartrate": 130,
+        "cadence": null,
+        "elevation": null
+    },
+    {
+        "lat": 51.202,
+        "lng": 3.19,
+        "speed": 18,
+        "heartrate": 140,
+        "cadence": null,
+        "elevation": null
+    },
+    {
+        "lat": 51.203,
+        "lng": 3.195,
+        "speed": 25,
+        "heartrate": 150,
+        "cadence": null,
+        "elevation": null
+    }
+]

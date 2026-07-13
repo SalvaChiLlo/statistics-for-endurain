@@ -181,6 +181,7 @@
                 <div class="relative border-b border-gray-200">
                     {% set leafletOptions = {
                         'polylineUrl': relativeUrl('api/' ~ leaflet.polylineUrl),
+                        'routeMetricsUrl': leaflet.routeMetricsUrl ? relativeUrl('api/' ~ leaflet.routeMetricsUrl) : null,
                         'tileLayer': leaflet.map.getTileLayer(),
                         'minZoom': leaflet.map.getMinZoom(),
                         'maxZoom': leaflet.map.getMaxZoom(),

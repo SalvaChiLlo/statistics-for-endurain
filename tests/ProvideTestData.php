@@ -337,6 +337,31 @@ trait ProvideTestData
             activity: $activity,
             rawData: $rawData
         ));
+
+        // Backs the route-polyline metric-gradient rendering (see #61): pairs coordinates with speed/heart
+        // rate values so the map can color the route based on a metric instead of a single flat color.
+        /** @var CombinedActivityStreamRepository $combinedActivityStreamRepository */
+        $combinedActivityStreamRepository = $this->getContainer()->get(CombinedActivityStreamRepository::class);
+        $combinedActivityStreamRepository->add(
+            CombinedActivityStreamBuilder::fromDefaults()
+                ->withActivityId(ActivityId::fromUnprefixed('9830227167'))
+                ->withUnitSystem(UnitSystem::METRIC)
+                ->withStreamTypes(CombinedStreamTypes::fromArray([
+                    CombinedStreamType::TIME,
+                    CombinedStreamType::DISTANCE,
+                    CombinedStreamType::LAT_LNG,
+                    CombinedStreamType::HEART_RATE,
+                    CombinedStreamType::VELOCITY,
+                ]))
+                ->withData([
+                    ['0:00', 0, [51.2, 3.18], 120, 20],
+                    ['0:10', 0.1, [51.201, 3.185], 130, 22],
+                    ['0:20', 0.2, [51.202, 3.19], 140, 18],
+                    ['0:30', 0.3, [51.203, 3.195], 150, 25],
+                ])
+                ->withMaxYAxisValue(150)
+                ->build()
+        );
     }
 
     private function addActivitySixFixtures(): void
