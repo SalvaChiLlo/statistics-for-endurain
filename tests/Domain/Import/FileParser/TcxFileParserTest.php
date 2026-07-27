@@ -99,16 +99,19 @@ class TcxFileParserTest extends ActivityFileParserTestCase
                     <Track>
                       <Trackpoint>
                         <Time>2021-09-08T00:00:00Z</Time>
+                        <AltitudeMeters>0</AltitudeMeters>
                         <DistanceMeters>0</DistanceMeters>
                       </Trackpoint>
                       <Trackpoint>
                         <Time>2021-09-08T00:00:10Z</Time>
+                        <AltitudeMeters>0</AltitudeMeters>
                         <DistanceMeters>30</DistanceMeters>
                       </Trackpoint>
                     </Track>
                     <Track>
                       <Trackpoint>
                         <Time>2021-09-08T00:00:20Z</Time>
+                        <AltitudeMeters>0</AltitudeMeters>
                         <DistanceMeters>60</DistanceMeters>
                       </Trackpoint>
                     </Track>
@@ -118,10 +121,12 @@ class TcxFileParserTest extends ActivityFileParserTestCase
                     <Track>
                       <Trackpoint>
                         <Time>2021-09-08T00:00:30Z</Time>
+                        <AltitudeMeters>0</AltitudeMeters>
                         <DistanceMeters>60</DistanceMeters>
                       </Trackpoint>
                       <Trackpoint>
                         <Time>2021-09-08T00:00:40Z</Time>
+                        <AltitudeMeters>0</AltitudeMeters>
                         <DistanceMeters>100</DistanceMeters>
                       </Trackpoint>
                     </Track>
@@ -144,6 +149,12 @@ class TcxFileParserTest extends ActivityFileParserTestCase
         $this->assertSame(
             [0, 10, 20, 30, 40],
             $parsed->getStreams()->filterOnType(StreamType::TIME)->getData()
+        );
+        // The Suunto zero-altitude filter must not touch files that genuinely
+        // have no altitude other than zero.
+        $this->assertSame(
+            [0.0, 0.0, 0.0, 0.0, 0.0],
+            $parsed->getStreams()->filterOnType(StreamType::ALTITUDE)->getData()
         );
     }
 
