@@ -1,3 +1,11 @@
+# [v5.7.1](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.7.0...v5.7.1)
+
+## Bug fixes
+* ISSUE #78: Fixed the sidebar version footer showing a stale hardcoded fork version compared against upstream Dreeve's unrelated release, and replaced the leftover "Powered by Strava" badge with accurate Endurain/Dreeve credit
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
 # [v5.7.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.6.1...v5.7.0)
 
 ## Features
