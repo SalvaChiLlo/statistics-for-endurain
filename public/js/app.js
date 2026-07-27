@@ -1,7 +1,7 @@
 import {eventBus, Events} from "./core/event-bus";
 import {FilterStorage} from "./features/data-table/storage";
 import Router from "./core/router";
-import {updateGithubLatestRelease} from "./services/github";
+import {updateGithubLatestRelease, updateUpstreamLatestRelease} from "./services/github";
 import initSidebar from "./components/sidebar";
 import ChartManager from "./features/charts/chart-manager";
 import {registerEchartsCallbacks} from "./features/charts/echarts-callbacks";
@@ -128,4 +128,5 @@ if ($modalAIChat) {
 
 (async () => {
     await updateGithubLatestRelease();
+    await updateUpstreamLatestRelease();
 })();

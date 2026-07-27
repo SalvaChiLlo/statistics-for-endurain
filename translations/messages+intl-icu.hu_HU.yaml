@@ -37,6 +37,7 @@ Average: Average
 Badges: Kitűzők
 Badminton: Tollaslabda
 Bananas: Bananas
+'Based on Dreeve': 'Based on Dreeve'
 Basketball: Kosárlabda
 Best: Legjobb
 'Best efforts': 'Legjobb teljesítmények'
@@ -75,6 +76,7 @@ Cycling: Kerékpározás
 Dance: Tánc
 'Dark mode': 'Sötét mód'
 Dashboard: Irányítópult
+'Data provided by Endurain': 'Data provided by Endurain'
 Date: Dátum
 Day: Nap
 'Days needed': 'Szükséges napok'
@@ -262,10 +264,12 @@ Pilates: Pilates
 'Pizza slices': 'Pizza slices'
 'Polarised training (last 30 days)': 'Polarizált edzés (utolsó 30 nap)'
 Power: Teljesítmény
+'Powered by': 'Powered by'
 'Powered by an estimated {caloriesBurned} calories, or roughly {numberOfPizzaSlices} slices of pizza 🍕.': 'Ezt becsült {caloriesBurned} kalória hajtotta, ami nagyjából {numberOfPizzaSlices} szelet pizza.'
 'Prev year': 'Előző év'
 Previous: Előző
 'Purchase price': 'Purchase price'
+"Purely informational: upstream Dreeve's latest release. This fork has its own independent release line.": "Purely informational: upstream Dreeve's latest release. This fork has its own independent release line."
 Race: Verseny
 'Racing Score': Versenypontszám
 'Racquet & Paddle Sports': 'Ütős sportok'
@@ -456,6 +460,7 @@ Tue: K
 Tue.: Tue.
 Unspecified: Meghatározatlan
 'Updated on': 'Frissítve:'
+'Upstream (Dreeve)': 'Upstream (Dreeve)'
 'User badge': 'Felhasználói kitűző'
 'Velo Mobiles': Velomobil
 'Very high': 'Nagyon magas'

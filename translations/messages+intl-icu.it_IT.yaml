@@ -37,6 +37,7 @@ Average: Average
 Badges: Badges
 Badminton: Badminton
 Bananas: Bananas
+'Based on Dreeve': 'Based on Dreeve'
 Basketball: Basket
 Best: Migliore
 'Best efforts': 'Migliori Sforzi'
@@ -75,6 +76,7 @@ Cycling: Ciclismo
 Dance: Dance
 'Dark mode': 'Modalità scura'
 Dashboard: 'Schermata iniziale'
+'Data provided by Endurain': 'Data provided by Endurain'
 Date: Data
 Day: Day
 'Days needed': 'Giorni necessari'
@@ -262,10 +264,12 @@ Pilates: Pilates
 'Pizza slices': 'Pizza slices'
 'Polarised training (last 30 days)': 'Allenamento polarizzato (ultimi 30 giorni)'
 Power: Potenza
+'Powered by': 'Powered by'
 'Powered by an estimated {caloriesBurned} calories, or roughly {numberOfPizzaSlices} slices of pizza 🍕.': "Consumato l'equivalente di {caloriesBurned} calorie, ovvero circa {numberOfPizzaSlices} fette di pizza 🍕."
 'Prev year': 'Anno precedente'
 Previous: Previous
 'Purchase price': 'Purchase price'
+"Purely informational: upstream Dreeve's latest release. This fork has its own independent release line.": "Purely informational: upstream Dreeve's latest release. This fork has its own independent release line."
 Race: Gara
 'Racing Score': 'Punteggio Gara'
 'Racquet & Paddle Sports': 'Sport con racchetta e pagaia'
@@ -456,6 +460,7 @@ Tue: Mar
 Tue.: Tue.
 Unspecified: 'Non specificato'
 'Updated on': 'Aggiornato il'
+'Upstream (Dreeve)': 'Upstream (Dreeve)'
 'User badge': 'Badge utente'
 'Velo Mobiles': Velomobili
 'Very high': 'Molto alto'

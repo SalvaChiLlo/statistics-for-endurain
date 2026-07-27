@@ -37,6 +37,7 @@ Average: Average
 Badges: Badges
 Badminton: 羽毛球
 Bananas: Bananas
+'Based on Dreeve': 'Based on Dreeve'
 Basketball: Basketball
 Best: 最佳
 'Best efforts': 最佳努力
@@ -75,6 +76,7 @@ Cycling: 骑行
 Dance: Dance
 'Dark mode': 'Dark mode'
 Dashboard: 仪表板
+'Data provided by Endurain': 'Data provided by Endurain'
 Date: 日期
 Day: Day
 'Days needed': 所需天数
@@ -262,10 +264,12 @@ Pilates: 普拉提
 'Pizza slices': 'Pizza slices'
 'Polarised training (last 30 days)': 极化训练（过去30天）
 Power: 功率
+'Powered by': 'Powered by'
 'Powered by an estimated {caloriesBurned} calories, or roughly {numberOfPizzaSlices} slices of pizza 🍕.': '消耗了约{caloriesBurned}卡路里，或大约{numberOfPizzaSlices}片披萨🍕。'
 'Prev year': 去年
 Previous: Previous
 'Purchase price': 'Purchase price'
+"Purely informational: upstream Dreeve's latest release. This fork has its own independent release line.": "Purely informational: upstream Dreeve's latest release. This fork has its own independent release line."
 Race: 比赛
 'Racing Score': 赛车成绩
 'Racquet & Paddle Sports': 球拍和桨类运动
@@ -456,6 +460,7 @@ Tue: 周二
 Tue.: Tue.
 Unspecified: 未指定
 'Updated on': 更新于
+'Upstream (Dreeve)': 'Upstream (Dreeve)'
 'User badge': 用户徽章
 'Velo Mobiles': 躺车
 'Very high': 非常高

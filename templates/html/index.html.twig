@@ -150,13 +150,19 @@
                     <span class="hidden" data-latest-version
                           data-current-version="{{ appVersion.getSemanticVersion() }}">
                     (latest: <a class="underline"
-                                href="https://github.com/dreeveapp/dreeve/releases/tag/[LATEST_VERSION]">[LATEST_VERSION]</a>)
+                                href="https://github.com/SalvaChiLlo/statistics-for-endurain/releases/tag/[LATEST_VERSION]">[LATEST_VERSION]</a>)
                 </span>
                 </div>
+                <div class="flex items-center justify-center gap-x-1 text-gray-400 text-xs">
+                    <span class="hidden" data-upstream-latest-version title="{{ "Purely informational: upstream Dreeve's latest release. This fork has its own independent release line."|trans }}">
+                        {{ "Upstream (Dreeve)"|trans }}: <a class="underline" href="https://github.com/dreeveapp/dreeve/releases/tag/[LATEST_VERSION]">[LATEST_VERSION]</a>
+                    </span>
+                </div>
             </div>
-            <div class="sidebar-collapsed:hidden flex gap-x-1 items-center justify-center">
-                <img class="h-3" src="{{ relativeUrl('assets/images/strava/powered-by-strava.svg') }}"
-                     alt="Powered by Strava"/>
+            <div class="sidebar-collapsed:hidden flex gap-x-1 items-center justify-center text-gray-400 text-xs">
+                <span title="{{ "Data provided by Endurain"|trans }}">{{ "Powered by"|trans }} <a class="underline" target="_blank" href="https://github.com/endurain-project/endurain">Endurain</a></span>
+                <span>&middot;</span>
+                <span title="{{ "Based on Dreeve"|trans }}"><a class="underline" target="_blank" href="https://github.com/dreeveapp/dreeve">Dreeve</a></span>
                 <div>& ☕</div>
             </div>
         </div>
