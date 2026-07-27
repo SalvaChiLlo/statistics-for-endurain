@@ -15,16 +15,9 @@ use App\Domain\Activity\Lap\ActivityLaps;
 use App\Domain\Activity\Math;
 use App\Domain\Activity\Route\RouteGeography;
 use App\Domain\Activity\SportType\SportType;
-use App\Domain\Activity\Stream\ActivityStream;
-use App\Domain\Activity\Stream\ActivityStreams;
 use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Activity\WorldType;
 use App\Domain\Import\SupportedFileExtension;
-use App\Infrastructure\Time\Clock\Clock;
-use App\Infrastructure\ValueObject\Geography\Coordinate;
-use App\Infrastructure\ValueObject\Geography\Latitude;
-use App\Infrastructure\ValueObject\Geography\Longitude;
-use App\Infrastructure\ValueObject\Geography\Polyline;
 use App\Infrastructure\ValueObject\Measurement\Length\Kilometer;
 use App\Infrastructure\ValueObject\Measurement\Length\Meter;
 use App\Infrastructure\ValueObject\Measurement\Velocity\MetersPerSecond;
@@ -34,13 +27,10 @@ use App\Infrastructure\ValueObject\Time\SerializableTimezone;
 
 final readonly class TcxFileParser implements ActivityFileParser
 {
-    // Interval longer than this is treated as a recording gap rather than active time.
-    private const int MAX_RECORDING_GAP_IN_SECONDS = 60;
-
     public function __construct(
         private ActivityIdFactory $activityIdFactory,
         private ActivityLapIdFactory $activityLapIdFactory,
-        private Clock $clock,
+        private ActivityStreamsMapper $activityStreamsMapper,
         private ?SerializableTimezone $timezone,
     ) {
     }
@@ -75,72 +65,10 @@ final readonly class TcxFileParser implements ActivityFileParser
             throw new CouldNotParseActivityFile(message: sprintf('No <Activity> found in "%s"', $file->getPath()->getFilename()), activityFile: $file);
         }
 
-        $tcxSport = (string) $activityXml['Sport'];
-        $sportType = match (strtolower($tcxSport)) {
-            'running' => SportType::RUN,
-            'biking', 'cycling' => SportType::RIDE,
-            'walking' => SportType::WALK,
-            'hiking' => SportType::HIKE,
-            'swimming' => SportType::SWIM,
-            default => SportType::tryFrom($tcxSport) ?? SportType::WORKOUT,
-        };
-        $deviceName = property_exists($activityXml->Creator, 'Name') && null !== $activityXml->Creator->Name ? (string) $activityXml->Creator->Name : null;
+        $sportType = SportTypeName::tryResolve((string) $activityXml['Sport']) ?? SportType::WORKOUT;
+        $deviceName = $this->stringChild($activityXml->Creator, 'Name');
 
-        $startTimestamp = null;
-        $streams = [
-            StreamType::TIME->value => [],
-            StreamType::DISTANCE->value => [],
-            StreamType::LAT_LNG->value => [],
-            StreamType::ALTITUDE->value => [],
-            StreamType::VELOCITY->value => [],
-            StreamType::HEART_RATE->value => [],
-            StreamType::CADENCE->value => [],
-            StreamType::WATTS->value => [],
-        ];
-        $laps = [];
-
-        foreach ($activityXml->Lap as $lapIndex => $lap) {
-            $lapStart = isset($lap['StartTime']) ? SerializableDateTime::fromString((string) $lap['StartTime'])->getTimestamp() : null;
-            $lapAltitudes = [];
-            $lapTimes = [];
-            $lapDistances = [];
-
-            foreach ($lap->Track->Trackpoint ?? [] as $trackpoint) {
-                $time = property_exists($trackpoint, 'Time') && null !== $trackpoint->Time ? SerializableDateTime::fromString((string) $trackpoint->Time)->getTimestamp() : null;
-                $startTimestamp ??= $time;
-                $lapTimes[] = $time;
-
-                $altitude = property_exists($trackpoint, 'AltitudeMeters') && null !== $trackpoint->AltitudeMeters ? (float) $trackpoint->AltitudeMeters : null;
-                $lapAltitudes[] = $altitude;
-
-                $distance = property_exists($trackpoint, 'DistanceMeters') && null !== $trackpoint->DistanceMeters ? (float) $trackpoint->DistanceMeters : null;
-                $lapDistances[] = $distance;
-
-                $streams[StreamType::TIME->value][] = (null !== $time && null !== $startTimestamp) ? $time - $startTimestamp : null;
-                $streams[StreamType::DISTANCE->value][] = $distance;
-                $streams[StreamType::ALTITUDE->value][] = $altitude;
-
-                $latitude = property_exists($trackpoint->Position, 'LatitudeDegrees') && null !== $trackpoint->Position->LatitudeDegrees ? (float) $trackpoint->Position->LatitudeDegrees : null;
-                $longitude = property_exists($trackpoint->Position, 'LongitudeDegrees') && null !== $trackpoint->Position->LongitudeDegrees ? (float) $trackpoint->Position->LongitudeDegrees : null;
-                $streams[StreamType::LAT_LNG->value][] = (null !== $latitude && null !== $longitude) ? [$latitude, $longitude] : null;
-
-                $streams[StreamType::HEART_RATE->value][] = property_exists($trackpoint->HeartRateBpm, 'Value') && null !== $trackpoint->HeartRateBpm->Value ? (int) $trackpoint->HeartRateBpm->Value : null;
-                $streams[StreamType::CADENCE->value][] = property_exists($trackpoint, 'Cadence') && null !== $trackpoint->Cadence ? (int) $trackpoint->Cadence : null;
-
-                $tpx = $this->extensionValues($trackpoint);
-                $streams[StreamType::VELOCITY->value][] = isset($tpx['Speed']) ? (float) $tpx['Speed'] : null;
-                $streams[StreamType::WATTS->value][] = isset($tpx['Watts']) ? (int) $tpx['Watts'] : null;
-            }
-
-            $laps[] = $this->buildLap(
-                (int) $lapIndex,
-                $lap,
-                $lapStart,
-                $this->elevationGain($lapAltitudes),
-                $this->activeSeconds($lapTimes),
-                $this->trackpointDistance($lapDistances),
-            );
-        }
+        [$laps, $streams, $startTimestamp] = $this->parseLapsAndStreams($activityXml);
 
         if (null === $startTimestamp) {
             throw new CouldNotParseActivityFile(message: sprintf('No trackpoints with a timestamp found in "%s"', $file->getPath()->getFilename()), activityFile: $file);
@@ -150,11 +78,22 @@ final readonly class TcxFileParser implements ActivityFileParser
         if ([] === $velocities) {
             // Files without per-trackpoint TPX/Speed (e.g. Polar exports) still carry
             // cumulative distance + time per trackpoint; derive velocity from those.
-            $streams[StreamType::VELOCITY->value] = $this->deriveVelocityStream(
+            $streams[StreamType::VELOCITY->value] = StreamMath::deriveVelocityStream(
                 $streams[StreamType::DISTANCE->value],
                 $streams[StreamType::TIME->value],
             );
             $velocities = array_filter($streams[StreamType::VELOCITY->value], static fn (mixed $v): bool => null !== $v);
+        }
+        if ([] === $velocities
+            && [] === array_filter($streams[StreamType::DISTANCE->value], static fn (mixed $v): bool => null !== $v)
+            && [] !== array_filter($streams[StreamType::LAT_LNG->value], is_array(...))) {
+            // Huawei Health exports carry neither speed nor distance per trackpoint;
+            // reconstruct the distance from the GPS track, like the GPX parser does.
+            $streams[StreamType::DISTANCE->value] = StreamMath::deriveDistanceStream($streams[StreamType::LAT_LNG->value]);
+            $streams[StreamType::VELOCITY->value] = StreamMath::deriveVelocityStream(
+                $streams[StreamType::DISTANCE->value],
+                $streams[StreamType::TIME->value],
+            );
         }
 
         $activityId = $this->activityIdFactory->random();
@@ -174,13 +113,13 @@ final readonly class TcxFileParser implements ActivityFileParser
             description: null,
             distance: Kilometer::from(round($activityLaps->sum(static fn (ActivityLap $lap): float => $lap->getDistance()->toFloat()) / 1000, 3)),
             elevation: Meter::from(round($activityLaps->sum(static fn (ActivityLap $lap): float => $lap->getElevationDifference()->toFloat()))),
-            startingCoordinate: $this->resolveStartingCoordinate($streams),
+            startingCoordinate: StreamMath::firstCoordinate($streams),
             calories: $this->sumCalories($activityXml),
             kilojoules: null,
             averagePower: Math::average($streams[StreamType::WATTS->value]),
             maxPower: Math::max($streams[StreamType::WATTS->value]),
-            averageSpeed: MetersPerSecond::fromOptional([] !== $velocities ? array_sum($velocities) / count($velocities) : null)->toKmPerHour(),
-            maxSpeed: MetersPerSecond::fromOptional([] !== $velocities ? max($velocities) : null)->toKmPerHour(),
+            averageSpeed: MetersPerSecond::fromOptional(Math::averageFloat($streams[StreamType::VELOCITY->value]))->toKmPerHour(),
+            maxSpeed: MetersPerSecond::fromOptional(Math::maxFloat($streams[StreamType::VELOCITY->value]))->toKmPerHour(),
             averageHeartRate: Math::average($streams[StreamType::HEART_RATE->value]),
             maxHeartRate: Math::max($streams[StreamType::HEART_RATE->value]),
             averageCadence: Math::average($streams[StreamType::CADENCE->value]),
@@ -189,7 +128,7 @@ final readonly class TcxFileParser implements ActivityFileParser
             deviceName: $deviceName,
             totalImageCount: 0,
             localImagePaths: [],
-            polyline: $this->encodePolyline($streams),
+            polyline: StreamMath::encodePolyline($streams),
             routeGeography: RouteGeography::create([]),
             weather: null,
             gearId: null,
@@ -199,35 +138,87 @@ final readonly class TcxFileParser implements ActivityFileParser
 
         return ParsedActivityFile::create(
             activity: $activity,
-            streams: $this->buildActivityStreams($streams, $activityId),
+            streams: $this->activityStreamsMapper->fromStreamMap($streams, $activityId),
             laps: $activityLaps,
         );
     }
 
     /**
-     * @param array<string, list<mixed>> $streamMap
+     * @return array{list<array<string, mixed>>, array<string, list<mixed>>, ?int}
      */
-    private function buildActivityStreams(array $streamMap, ActivityId $activityId): ActivityStreams
+    private function parseLapsAndStreams(\SimpleXMLElement $activityXml): array
     {
-        $createdOn = $this->clock->getCurrentDateTimeImmutable();
+        $startTimestamp = null;
+        $streams = [
+            StreamType::TIME->value => [],
+            StreamType::DISTANCE->value => [],
+            StreamType::LAT_LNG->value => [],
+            StreamType::ALTITUDE->value => [],
+            StreamType::VELOCITY->value => [],
+            StreamType::HEART_RATE->value => [],
+            StreamType::CADENCE->value => [],
+            StreamType::WATTS->value => [],
+            StreamType::TEMP->value => [],
+        ];
+        $laps = [];
 
-        $streams = ActivityStreams::empty();
-        foreach ($streamMap as $type => $values) {
-            if (!$streamType = StreamType::tryFrom($type)) {
-                continue;
+        $hasNonZeroAltitude = $this->hasNonZeroAltitude($activityXml);
+
+        $lapIndex = 0;
+        foreach ($activityXml->Lap as $lap) {
+            $lapAltitudes = [];
+            $lapTimes = [];
+            $lapDistances = [];
+
+            // A lap can contain multiple <Track> elements (e.g. one per pause/resume).
+            foreach ($lap->Track ?? [] as $track) {
+                foreach ($track->Trackpoint ?? [] as $trackpoint) {
+                    $rawTime = $this->stringChild($trackpoint, 'Time');
+                    $time = null !== $rawTime ? SerializableDateTime::fromString($rawTime)->getTimestamp() : null;
+                    $startTimestamp ??= $time;
+                    $lapTimes[] = $time;
+
+                    $altitude = $this->floatChild($trackpoint, 'AltitudeMeters');
+                    // Suunto exports interleave spurious 0-altitudes between real
+                    // values; treat exact zeros as missing, but only when the file
+                    // has real altitude data (an all-zero file is kept as-is).
+                    if ($hasNonZeroAltitude && 0.0 === $altitude) {
+                        $altitude = null;
+                    }
+                    $lapAltitudes[] = $altitude;
+
+                    $distance = $this->floatChild($trackpoint, 'DistanceMeters');
+                    $lapDistances[] = $distance;
+
+                    $streams[StreamType::TIME->value][] = (null !== $time && null !== $startTimestamp) ? $time - $startTimestamp : null;
+                    $streams[StreamType::DISTANCE->value][] = $distance;
+                    $streams[StreamType::ALTITUDE->value][] = $altitude;
+
+                    $latitude = $this->floatChild($trackpoint->Position, 'LatitudeDegrees');
+                    $longitude = $this->floatChild($trackpoint->Position, 'LongitudeDegrees');
+                    // 0/0 ("null island") means no GPS fix (indoor rides, GPS not locked yet).
+                    $streams[StreamType::LAT_LNG->value][] = (null !== $latitude && null !== $longitude && (0.0 !== $latitude || 0.0 !== $longitude)) ? [$latitude, $longitude] : null;
+
+                    $streams[StreamType::HEART_RATE->value][] = $this->intChild($trackpoint->HeartRateBpm, 'Value');
+                    $streams[StreamType::CADENCE->value][] = $this->intChild($trackpoint, 'Cadence');
+
+                    $tpx = $this->extensionValues($trackpoint);
+                    $streams[StreamType::VELOCITY->value][] = isset($tpx['Speed']) ? (float) $tpx['Speed'] : null;
+                    $streams[StreamType::WATTS->value][] = isset($tpx['Watts']) ? (int) $tpx['Watts'] : null;
+                    $streams[StreamType::TEMP->value][] = isset($tpx['Temperature']) ? (int) round((float) $tpx['Temperature']) : null;
+                }
             }
-            if ([] === array_filter($values, static fn (mixed $value): bool => null !== $value)) {
-                continue;
-            }
-            $streams->add(ActivityStream::create(
-                activityId: $activityId,
-                streamType: $streamType,
-                streamData: $values,
-                createdOn: $createdOn,
-            ));
+
+            $laps[] = $this->buildLap(
+                index: $lapIndex++,
+                lap: $lap,
+                elevationGain: StreamMath::elevationGain($lapAltitudes),
+                activeSeconds: StreamMath::activeSeconds($lapTimes),
+                trackpointDistance: $this->trackpointDistance($lapDistances),
+            );
         }
 
-        return $streams;
+        return [$laps, $streams, $startTimestamp];
     }
 
     /**
@@ -264,55 +255,30 @@ final readonly class TcxFileParser implements ActivityFileParser
     /**
      * @return array<string, mixed>
      */
-    private function buildLap(int $index, \SimpleXMLElement $lap, ?int $lapStart, float $elevationGain, int $activeSeconds, ?float $trackpointDistance): array
+    private function buildLap(int $index, \SimpleXMLElement $lap, float $elevationGain, int $activeSeconds, ?float $trackpointDistance): array
     {
-        $hasTotalTime = property_exists($lap, 'TotalTimeSeconds') && null !== $lap->TotalTimeSeconds;
-        $totalTimeSeconds = $hasTotalTime ? (int) round((float) $lap->TotalTimeSeconds) : 0;
+        $totalTime = $this->floatChild($lap, 'TotalTimeSeconds');
+        $totalTimeSeconds = null !== $totalTime ? (int) round($totalTime) : 0;
 
         // Elapsed time keeps the file's reported total (including pauses/gaps). Moving time is
         // capped at the active time so a recording gap (e.g. two merged rides) can never inflate it.
-        $movingTime = $hasTotalTime ? min($totalTimeSeconds, $activeSeconds) : 0;
+        $movingTime = null !== $totalTime ? min($totalTimeSeconds, $activeSeconds) : 0;
 
         // Prefer the recorded cumulative-distance stream; the lap summary field can be wrong in
         // merged files. Fall back to the summary when trackpoints carry no distance.
-        $distance = $trackpointDistance ?? (property_exists($lap, 'DistanceMeters') && null !== $lap->DistanceMeters ? (float) $lap->DistanceMeters : 0.0);
+        $distance = $trackpointDistance ?? $this->floatChild($lap, 'DistanceMeters') ?? 0.0;
 
         return [
-            'id' => $index + 1,
             'lap_index' => $index + 1,
             'name' => sprintf('Lap %d', $index + 1),
             'elapsed_time' => $totalTimeSeconds,
             'moving_time' => $movingTime,
             'distance' => $distance,
             'average_speed' => $movingTime > 0 ? $distance / $movingTime : 0.0,
-            'max_speed' => property_exists($lap, 'MaximumSpeed') && null !== $lap->MaximumSpeed ? (float) $lap->MaximumSpeed : 0.0,
+            'max_speed' => $this->floatChild($lap, 'MaximumSpeed') ?? 0.0,
             'total_elevation_gain' => $elevationGain,
-            'average_heartrate' => property_exists($lap->AverageHeartRateBpm, 'Value') && null !== $lap->AverageHeartRateBpm->Value ? (int) $lap->AverageHeartRateBpm->Value : null,
-            'start_date' => null !== $lapStart ? SerializableDateTime::fromTimestamp($lapStart)->format(\DateTimeInterface::ATOM) : null,
+            'average_heartrate' => $this->intChild($lap->AverageHeartRateBpm, 'Value'),
         ];
-    }
-
-    /**
-     * @param list<?int> $timestamps
-     */
-    private function activeSeconds(array $timestamps): int
-    {
-        $active = 0;
-        $previous = null;
-        foreach ($timestamps as $time) {
-            if (null === $time) {
-                continue;
-            }
-            if (null !== $previous) {
-                $delta = $time - $previous;
-                if ($delta > 0 && $delta <= self::MAX_RECORDING_GAP_IN_SECONDS) {
-                    $active += $delta;
-                }
-            }
-            $previous = $time;
-        }
-
-        return $active;
     }
 
     /**
@@ -326,23 +292,6 @@ final readonly class TcxFileParser implements ActivityFileParser
         }
 
         return $values[count($values) - 1] - $values[0];
-    }
-
-    /**
-     * @param array<string, list<mixed>> $streams
-     */
-    private function resolveStartingCoordinate(array $streams): ?Coordinate
-    {
-        foreach ($streams[StreamType::LAT_LNG->value] ?? [] as $point) {
-            if (is_array($point)) {
-                return Coordinate::createFromLatAndLng(
-                    Latitude::fromString((string) $point[0]),
-                    Longitude::fromString((string) $point[1]),
-                );
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -362,13 +311,29 @@ final readonly class TcxFileParser implements ActivityFileParser
         return $values;
     }
 
+    private function hasNonZeroAltitude(\SimpleXMLElement $activityXml): bool
+    {
+        foreach ($activityXml->Lap as $lap) {
+            foreach ($lap->Track ?? [] as $track) {
+                foreach ($track->Trackpoint ?? [] as $trackpoint) {
+                    $altitude = $this->floatChild($trackpoint, 'AltitudeMeters');
+                    if (null !== $altitude && 0.0 !== $altitude) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     private function sumCalories(\SimpleXMLElement $activity): ?int
     {
         $calories = 0;
         $found = false;
         foreach ($activity->Lap as $lap) {
-            if (property_exists($lap, 'Calories') && null !== $lap->Calories) {
-                $calories += (int) $lap->Calories;
+            if (null !== ($lapCalories = $this->intChild($lap, 'Calories'))) {
+                $calories += $lapCalories;
                 $found = true;
             }
         }
@@ -376,73 +341,18 @@ final readonly class TcxFileParser implements ActivityFileParser
         return $found ? $calories : null;
     }
 
-    /**
-     * @param list<?float> $distances
-     * @param list<?int>   $times
-     *
-     * @return list<?float>
-     */
-    private function deriveVelocityStream(array $distances, array $times): array
+    private function stringChild(\SimpleXMLElement $parent, string $child): ?string
     {
-        $velocities = [];
-        $previousDistance = null;
-        $previousTime = null;
-
-        foreach ($distances as $index => $distance) {
-            $time = $times[$index] ?? null;
-            if (null === $distance || null === $time) {
-                $velocities[] = null;
-                continue;
-            }
-
-            if (null !== $previousDistance && null !== $previousTime && $time > $previousTime) {
-                $velocities[] = ($distance - $previousDistance) / ($time - $previousTime);
-            } else {
-                $velocities[] = null;
-            }
-
-            $previousDistance = $distance;
-            $previousTime = $time;
-        }
-
-        return $velocities;
+        return property_exists($parent, $child) && null !== $parent->{$child} ? (string) $parent->{$child} : null;
     }
 
-    /**
-     * @param list<?float> $altitudes
-     */
-    private function elevationGain(array $altitudes): float
+    private function floatChild(\SimpleXMLElement $parent, string $child): ?float
     {
-        $gain = 0.0;
-        $previous = null;
-        foreach ($altitudes as $altitude) {
-            if (null === $altitude) {
-                continue;
-            }
-            if (null !== $previous && $altitude > $previous) {
-                $gain += $altitude - $previous;
-            }
-            $previous = $altitude;
-        }
-
-        return $gain;
+        return null !== ($value = $this->stringChild($parent, $child)) ? (float) $value : null;
     }
 
-    /**
-     * @param array<string, list<mixed>> $streamMap
-     */
-    private function encodePolyline(array $streamMap): ?string
+    private function intChild(\SimpleXMLElement $parent, string $child): ?int
     {
-        /** @var array<int, array{float, float}> $coordinates */
-        $coordinates = array_values(array_filter(
-            $streamMap[StreamType::LAT_LNG->value] ?? [],
-            is_array(...),
-        ));
-
-        if ([] === $coordinates) {
-            return null;
-        }
-
-        return (string) Polyline::fromCoordinates($coordinates)->simplify()->encode();
+        return null !== ($value = $this->stringChild($parent, $child)) ? (int) $value : null;
     }
 }

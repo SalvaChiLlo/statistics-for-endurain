@@ -15,17 +15,11 @@ use App\Domain\Activity\Lap\ActivityLaps;
 use App\Domain\Activity\Math;
 use App\Domain\Activity\Route\RouteGeography;
 use App\Domain\Activity\SportType\SportType;
-use App\Domain\Activity\Stream\ActivityStream;
-use App\Domain\Activity\Stream\ActivityStreams;
 use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Activity\WorldType;
+use App\Domain\Import\FileParser\Gpx\GpxSportType;
 use App\Domain\Import\SupportedFileExtension;
-use App\Infrastructure\Time\Clock\Clock;
-use App\Infrastructure\ValueObject\Geography\Coordinate;
 use App\Infrastructure\ValueObject\Geography\GeoMath;
-use App\Infrastructure\ValueObject\Geography\Latitude;
-use App\Infrastructure\ValueObject\Geography\Longitude;
-use App\Infrastructure\ValueObject\Geography\Polyline;
 use App\Infrastructure\ValueObject\Measurement\Length\Kilometer;
 use App\Infrastructure\ValueObject\Measurement\Length\Meter;
 use App\Infrastructure\ValueObject\Measurement\Velocity\MetersPerSecond;
@@ -41,7 +35,7 @@ final readonly class GpxFileParser implements ActivityFileParser
     public function __construct(
         private ActivityIdFactory $activityIdFactory,
         private ActivityLapIdFactory $activityLapIdFactory,
-        private Clock $clock,
+        private ActivityStreamsMapper $activityStreamsMapper,
         private ?SerializableTimezone $timezone,
     ) {
     }
@@ -75,9 +69,74 @@ final readonly class GpxFileParser implements ActivityFileParser
             throw new CouldNotParseActivityFile(message: sprintf('No <trk> found in "%s"', $file->getPath()->getFilename()), activityFile: $file);
         }
 
+        $sportType = $this->resolveSportType($xml);
+        $deviceName = null;
+        if (isset($xml['creator']) && '' !== (string) $xml['creator']) {
+            $deviceName = (string) $xml['creator'];
+        }
+        $calories = $this->resolveCalories($xml);
+
+        [$laps, $streams, $startTimestamp] = $this->parseTracksAndStreams($xml);
+
+        if (null === $startTimestamp) {
+            throw new CouldNotParseActivityFile(message: sprintf('No trackpoints with a timestamp found in "%s"', $file->getPath()->getFilename()), activityFile: $file);
+        }
+
+        $velocities = array_filter($streams[StreamType::VELOCITY->value], static fn (mixed $v): bool => null !== $v);
+        $activityId = $this->activityIdFactory->random();
+        $startDateTime = SerializableDateTime::fromTimestamp($startTimestamp)->toTimezone($this->timezone ?? SerializableTimezone::UTC());
+        $activityLaps = $this->buildActivityLaps($laps, $activityId);
+        $activity = Activity::fromState(
+            activityId: $activityId,
+            startDateTime: $startDateTime,
+            sportType: $sportType,
+            worldType: WorldType::fromDeviceAndActivityName(
+                deviceName: $deviceName,
+                activityName: $file->getPath()->getFilename()
+            ),
+            importSource: ImportSource::GPX_FILE,
+            externalReferenceId: ExternalReferenceId::fromString($file->getPath()->getFilename()),
+            name: ActivityName::from($startDateTime, $sportType),
+            description: null,
+            distance: Kilometer::from(round($activityLaps->sum(static fn (ActivityLap $lap): float => $lap->getDistance()->toFloat()) / 1000, 3)),
+            elevation: Meter::from(round($activityLaps->sum(static fn (ActivityLap $lap): float => $lap->getElevationDifference()->toFloat()))),
+            startingCoordinate: StreamMath::firstCoordinate($streams),
+            calories: $calories,
+            kilojoules: null,
+            averagePower: Math::average($streams[StreamType::WATTS->value]),
+            maxPower: Math::max($streams[StreamType::WATTS->value]),
+            averageSpeed: MetersPerSecond::fromOptional([] !== $velocities ? array_sum($velocities) / count($velocities) : null)->toKmPerHour(),
+            maxSpeed: MetersPerSecond::fromOptional([] !== $velocities ? max($velocities) : null)->toKmPerHour(),
+            averageHeartRate: Math::average($streams[StreamType::HEART_RATE->value]),
+            maxHeartRate: Math::max($streams[StreamType::HEART_RATE->value]),
+            averageCadence: Math::average($streams[StreamType::CADENCE->value]),
+            movingTimeInSeconds: (int) $activityLaps->sum(static fn (ActivityLap $lap): int => $lap->getMovingTimeInSeconds()),
+            elapsedTimeInSeconds: (int) $activityLaps->sum(static fn (ActivityLap $lap): int => $lap->getElapsedTimeInSeconds()),
+            deviceName: $deviceName,
+            totalImageCount: 0,
+            localImagePaths: [],
+            polyline: StreamMath::encodePolyline($streams),
+            routeGeography: RouteGeography::create([]),
+            weather: null,
+            gearId: null,
+            isCommute: false,
+            workoutType: null,
+        );
+
+        return ParsedActivityFile::create(
+            activity: $activity,
+            streams: $this->activityStreamsMapper->fromStreamMap($streams, $activityId),
+            laps: $activityLaps,
+        );
+    }
+
+    /**
+     * @return array{list<array<string, mixed>>, array<string, list<mixed>>, ?int}
+     */
+    private function parseTracksAndStreams(\SimpleXMLElement $xml): array
+    {
         $startTimestamp = null;
         $cumulativeDistance = 0.0;
-
         $streams = [
             StreamType::TIME->value => [],
             StreamType::DISTANCE->value => [],
@@ -87,23 +146,12 @@ final readonly class GpxFileParser implements ActivityFileParser
             StreamType::HEART_RATE->value => [],
             StreamType::CADENCE->value => [],
             StreamType::WATTS->value => [],
+            StreamType::TEMP->value => [],
         ];
         $laps = [];
 
-        $sportType = SportType::WORKOUT;
-        $deviceName = $this->resolveDeviceName($xml);
-        $calories = null;
-
         $lapIndex = 0;
         foreach ($xml->trk as $track) {
-            if (property_exists($track, 'type') && null !== $track->type && '' !== (string) $track->type) {
-                $sportType = $this->mapSportType((string) $track->type);
-            }
-            $trackCalories = $this->sumCalories($track);
-            if (null !== $trackCalories) {
-                $calories = ($calories ?? 0) + $trackCalories;
-            }
-
             foreach ($track->trkseg ?? [] as $segment) {
                 // Cursors must not carry across segments.
                 $previousLatitude = null;
@@ -118,22 +166,25 @@ final readonly class GpxFileParser implements ActivityFileParser
 
                 foreach ($segment->trkpt ?? [] as $trackpoint) {
                     // Skip trackpoints without time (e.g. OsmAnd exports).
-                    if (!property_exists($trackpoint, 'time')) {
+                    $rawTime = $this->stringChild($trackpoint, 'time');
+                    if (null === $rawTime) {
                         continue;
                     }
-                    if (null === $trackpoint->time) {
+                    if ('' === $rawTime) {
                         continue;
                     }
-                    if ('' === (string) $trackpoint->time) {
-                        continue;
-                    }
-                    $time = SerializableDateTime::fromString((string) $trackpoint->time)->getTimestamp();
+                    $time = SerializableDateTime::fromString($rawTime)->getTimestamp();
                     $startTimestamp ??= $time;
 
                     $latitude = isset($trackpoint['lat']) ? (float) $trackpoint['lat'] : null;
                     $longitude = isset($trackpoint['lon']) ? (float) $trackpoint['lon'] : null;
-                    $altitude = $this->sanitizeElevation(property_exists($trackpoint, 'ele') && null !== $trackpoint->ele ? (float) $trackpoint->ele : null);
+                    if (0.0 === $latitude && 0.0 === $longitude) {
+                        $latitude = null;
+                        $longitude = null;
+                    }
+                    $altitude = $this->sanitizeElevation($this->floatChild($trackpoint, 'ele'));
 
+                    $instantSpeed = null;
                     if (!in_array(null, [$previousLatitude, $previousLongitude, $latitude, $longitude], true)) {
                         $delta = GeoMath::haversineDistance(
                             lat1: $previousLatitude,
@@ -143,16 +194,10 @@ final readonly class GpxFileParser implements ActivityFileParser
                         );
                         $cumulativeDistance += $delta;
                         $segmentDistance += $delta;
-                    }
 
-                    $instantSpeed = null;
-                    if (null !== $previousTime && $time > $previousTime && null !== $latitude && null !== $longitude && null !== $previousLatitude && null !== $previousLongitude) {
-                        $instantSpeed = GeoMath::haversineDistance(
-                            lat1: $previousLatitude,
-                            lon1: $previousLongitude,
-                            lat2: $latitude,
-                            lon2: $longitude
-                        ) / ($time - $previousTime);
+                        if (null !== $previousTime && $time > $previousTime) {
+                            $instantSpeed = $delta / ($time - $previousTime);
+                        }
                     }
 
                     $extensions = $this->extractExtensionValues($trackpoint);
@@ -165,6 +210,7 @@ final readonly class GpxFileParser implements ActivityFileParser
                     $streams[StreamType::HEART_RATE->value][] = $extensions['hr'];
                     $streams[StreamType::CADENCE->value][] = $extensions['cad'];
                     $streams[StreamType::WATTS->value][] = $extensions['power'];
+                    $streams[StreamType::TEMP->value][] = $extensions['temp'];
 
                     $segmentTimes[] = $time;
                     $segmentAltitudes[] = $altitude;
@@ -190,87 +236,37 @@ final readonly class GpxFileParser implements ActivityFileParser
                     distance: $segmentDistance,
                     speeds: $segmentSpeeds,
                     heartRates: $segmentHeartRates,
-                    elevationGain: $this->elevationGain($segmentAltitudes),
+                    elevationGain: StreamMath::elevationGain($segmentAltitudes),
+                    activeSeconds: StreamMath::activeSeconds($segmentTimes),
                 );
             }
         }
 
-        if (null === $startTimestamp) {
-            throw new CouldNotParseActivityFile(message: sprintf('No trackpoints with a timestamp found in "%s"', $file->getPath()->getFilename()), activityFile: $file);
-        }
-
-        $velocities = array_filter($streams[StreamType::VELOCITY->value], static fn (mixed $v): bool => null !== $v);
-        $activityId = $this->activityIdFactory->random();
-        $startDateTime = SerializableDateTime::fromTimestamp($startTimestamp)->toTimezone($this->timezone ?? SerializableTimezone::UTC());
-        $activityLaps = $this->buildActivityLaps($laps, $activityId);
-        $activity = Activity::fromState(
-            activityId: $activityId,
-            startDateTime: $startDateTime,
-            sportType: $sportType,
-            worldType: WorldType::fromDeviceAndActivityName(
-                deviceName: $deviceName,
-                activityName: $file->getPath()->getFilename()
-            ),
-            importSource: ImportSource::GPX_FILE,
-            externalReferenceId: ExternalReferenceId::fromString($file->getPath()->getFilename()),
-            name: ActivityName::from($startDateTime, $sportType),
-            description: null,
-            distance: Kilometer::from(round($activityLaps->sum(static fn (ActivityLap $lap): float => $lap->getDistance()->toFloat()) / 1000, 3)),
-            elevation: Meter::from(round($activityLaps->sum(static fn (ActivityLap $lap): float => $lap->getElevationDifference()->toFloat()))),
-            startingCoordinate: $this->resolveStartingCoordinate($streams),
-            calories: $calories,
-            kilojoules: null,
-            averagePower: Math::average($streams[StreamType::WATTS->value]),
-            maxPower: Math::max($streams[StreamType::WATTS->value]),
-            averageSpeed: MetersPerSecond::fromOptional([] !== $velocities ? array_sum($velocities) / count($velocities) : null)->toKmPerHour(),
-            maxSpeed: MetersPerSecond::fromOptional([] !== $velocities ? max($velocities) : null)->toKmPerHour(),
-            averageHeartRate: Math::average($streams[StreamType::HEART_RATE->value]),
-            maxHeartRate: Math::max($streams[StreamType::HEART_RATE->value]),
-            averageCadence: Math::average($streams[StreamType::CADENCE->value]),
-            movingTimeInSeconds: (int) $activityLaps->sum(static fn (ActivityLap $lap): int => $lap->getMovingTimeInSeconds()),
-            elapsedTimeInSeconds: (int) $activityLaps->sum(static fn (ActivityLap $lap): int => $lap->getElapsedTimeInSeconds()),
-            deviceName: $deviceName,
-            totalImageCount: 0,
-            localImagePaths: [],
-            polyline: $this->encodePolyline($streams),
-            routeGeography: RouteGeography::create([]),
-            weather: null,
-            gearId: null,
-            isCommute: false,
-            workoutType: null,
-        );
-
-        return ParsedActivityFile::create(
-            activity: $activity,
-            streams: $this->buildActivityStreams($streams, $activityId),
-            laps: $activityLaps,
-        );
+        return [$laps, $streams, $startTimestamp];
     }
 
-    /**
-     * @param array<string, list<mixed>> $streamMap
-     */
-    private function buildActivityStreams(array $streamMap, ActivityId $activityId): ActivityStreams
+    private function resolveSportType(\SimpleXMLElement $xml): SportType
     {
-        $createdOn = $this->clock->getCurrentDateTimeImmutable();
-
-        $streams = ActivityStreams::empty();
-        foreach ($streamMap as $type => $values) {
-            if (!$streamType = StreamType::tryFrom($type)) {
-                continue;
+        foreach ($xml->trk as $track) {
+            $type = $this->stringChild($track, 'type');
+            if (null !== $type && '' !== $type) {
+                return GpxSportType::resolve($type);
             }
-            if ([] === array_filter($values, static fn (mixed $value): bool => null !== $value)) {
-                continue;
-            }
-            $streams->add(ActivityStream::create(
-                activityId: $activityId,
-                streamType: $streamType,
-                streamData: $values,
-                createdOn: $createdOn,
-            ));
         }
 
-        return $streams;
+        return SportType::WORKOUT;
+    }
+
+    private function resolveCalories(\SimpleXMLElement $xml): ?int
+    {
+        $calories = null;
+        foreach ($xml->trk as $track) {
+            if (null !== ($trackCalories = $this->sumCalories($track))) {
+                $calories = ($calories ?? 0) + $trackCalories;
+            }
+        }
+
+        return $calories;
     }
 
     /**
@@ -311,47 +307,41 @@ final readonly class GpxFileParser implements ActivityFileParser
      *
      * @return array<string, mixed>
      */
-    private function buildLap(int $index, array $times, float $distance, array $speeds, array $heartRates, float $elevationGain): array
+    private function buildLap(int $index, array $times, float $distance, array $speeds, array $heartRates, float $elevationGain, int $activeSeconds): array
     {
         $elapsed = [] !== $times ? max($times) - min($times) : 0;
+        // Elapsed time keeps the segment's full duration. Moving time is capped at the active time.
+        $movingTime = min($elapsed, $activeSeconds);
 
         return [
-            'id' => $index + 1,
             'lap_index' => $index + 1,
             'name' => sprintf('Lap %d', $index + 1),
             'elapsed_time' => $elapsed,
-            'moving_time' => $elapsed,
+            'moving_time' => $movingTime,
             'distance' => $distance,
-            'average_speed' => $elapsed > 0 ? $distance / $elapsed : 0.0,
+            'average_speed' => $movingTime > 0 ? $distance / $movingTime : 0.0,
             'max_speed' => [] !== $speeds ? max($speeds) : 0.0,
             'total_elevation_gain' => $elevationGain,
             'average_heartrate' => [] !== $heartRates ? array_sum($heartRates) / count($heartRates) : null,
         ];
     }
 
-    /**
-     * @param array<string, list<mixed>> $streams
-     */
-    private function resolveStartingCoordinate(array $streams): ?Coordinate
+    private function stringChild(\SimpleXMLElement $parent, string $child): ?string
     {
-        foreach ($streams[StreamType::LAT_LNG->value] ?? [] as $point) {
-            if (is_array($point)) {
-                return Coordinate::createFromLatAndLng(
-                    latitude: Latitude::fromString((string) $point[0]),
-                    longitude: Longitude::fromString((string) $point[1]),
-                );
-            }
-        }
+        return property_exists($parent, $child) && null !== $parent->{$child} ? (string) $parent->{$child} : null;
+    }
 
-        return null;
+    private function floatChild(\SimpleXMLElement $parent, string $child): ?float
+    {
+        return null !== ($value = $this->stringChild($parent, $child)) ? (float) $value : null;
     }
 
     /**
-     * @return array{hr: ?int, cad: ?int, power: ?int}
+     * @return array{hr: ?int, cad: ?int, power: ?int, temp: ?int}
      */
     private function extractExtensionValues(\SimpleXMLElement $trackpoint): array
     {
-        $values = ['hr' => null, 'cad' => null, 'power' => null];
+        $values = ['hr' => null, 'cad' => null, 'power' => null, 'temp' => null];
         if (!property_exists($trackpoint, 'extensions') || null === $trackpoint->extensions) {
             return $values;
         }
@@ -365,7 +355,7 @@ final readonly class GpxFileParser implements ActivityFileParser
     }
 
     /**
-     * @param array{hr: ?int, cad: ?int, power: ?int} $values
+     * @param array{hr: ?int, cad: ?int, power: ?int, temp: ?int} $values
      */
     private function collectExtensionValues(\SimpleXMLElement $element, array &$values): void
     {
@@ -381,6 +371,8 @@ final readonly class GpxFileParser implements ActivityFileParser
                     $values['cad'] = $intValue;
                 } elseif (in_array($tag, ['power', 'powerinwatts'], true)) {
                     $values['power'] = $intValue;
+                } elseif (in_array($tag, ['atemp', 'temp', 'temperature'], true)) {
+                    $values['temp'] = $intValue;
                 }
             }
 
@@ -429,64 +421,5 @@ final readonly class GpxFileParser implements ActivityFileParser
         }
 
         return null;
-    }
-
-    /**
-     * @param list<?float> $altitudes
-     */
-    private function elevationGain(array $altitudes): float
-    {
-        $gain = 0.0;
-        $previous = null;
-        foreach ($altitudes as $altitude) {
-            if (null === $altitude) {
-                continue;
-            }
-            if (null !== $previous && $altitude > $previous) {
-                $gain += $altitude - $previous;
-            }
-            $previous = $altitude;
-        }
-
-        return $gain;
-    }
-
-    private function resolveDeviceName(\SimpleXMLElement $xml): ?string
-    {
-        if (isset($xml['creator']) && '' !== (string) $xml['creator']) {
-            return (string) $xml['creator'];
-        }
-
-        return null;
-    }
-
-    private function mapSportType(string $type): SportType
-    {
-        return match (strtolower($type)) {
-            'running', 'run', '9' => SportType::RUN,
-            'cycling', 'biking', 'ride', '1' => SportType::RIDE,
-            'walking', 'walk' => SportType::WALK,
-            'hiking', 'hike' => SportType::HIKE,
-            'swimming', 'swim' => SportType::SWIM,
-            default => SportType::tryFrom($type) ?? SportType::WORKOUT,
-        };
-    }
-
-    /**
-     * @param array<string, list<mixed>> $streamMap
-     */
-    private function encodePolyline(array $streamMap): ?string
-    {
-        /** @var array<int, array{float, float}> $coordinates */
-        $coordinates = array_values(array_filter(
-            $streamMap[StreamType::LAT_LNG->value] ?? [],
-            is_array(...),
-        ));
-
-        if ([] === $coordinates) {
-            return null;
-        }
-
-        return (string) Polyline::fromCoordinates($coordinates)->simplify()->encode();
     }
 }

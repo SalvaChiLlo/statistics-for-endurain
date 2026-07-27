@@ -12,10 +12,9 @@ use App\Domain\Activity\ImportSource;
 use App\Domain\Activity\Lap\ActivityLap;
 use App\Domain\Activity\Lap\ActivityLapIdFactory;
 use App\Domain\Activity\Lap\ActivityLaps;
+use App\Domain\Activity\Math;
 use App\Domain\Activity\Route\RouteGeography;
 use App\Domain\Activity\SportType\SportType;
-use App\Domain\Activity\Stream\ActivityStream;
-use App\Domain\Activity\Stream\ActivityStreams;
 use App\Domain\Activity\Stream\StreamType;
 use App\Domain\Activity\WorldType;
 use App\Domain\Import\FileParser\Fit\FitManufacturer;
@@ -24,12 +23,10 @@ use App\Domain\Import\FileParser\Fit\FitSportType;
 use App\Domain\Import\SupportedFileExtension;
 use App\Infrastructure\Process\ProcessFactory;
 use App\Infrastructure\Serialization\Json;
-use App\Infrastructure\Time\Clock\Clock;
 use App\Infrastructure\ValueObject\Geography\Coordinate;
 use App\Infrastructure\ValueObject\Geography\GeoMath;
 use App\Infrastructure\ValueObject\Geography\Latitude;
 use App\Infrastructure\ValueObject\Geography\Longitude;
-use App\Infrastructure\ValueObject\Geography\Polyline;
 use App\Infrastructure\ValueObject\Measurement\Length\Kilometer;
 use App\Infrastructure\ValueObject\Measurement\Length\Meter;
 use App\Infrastructure\ValueObject\Measurement\Velocity\MetersPerSecond;
@@ -42,12 +39,13 @@ final readonly class FitFileParser implements ActivityFileParser
     // Seconds between the Unix epoch and the FIT epoch (1989-12-31 00:00:00 UTC).
     // FIT timestamps are stored as seconds since the FIT epoch.
     private const int FIT_EPOCH_OFFSET = 631065600;
+    private const float MAX_AVG_POWER_DEVIANCE = 0.1;
 
     public function __construct(
         private ActivityIdFactory $activityIdFactory,
         private ActivityLapIdFactory $activityLapIdFactory,
         private ProcessFactory $processFactory,
-        private Clock $clock,
+        private ActivityStreamsMapper $activityStreamsMapper,
         private ?SerializableTimezone $timezone,
     ) {
     }
@@ -72,6 +70,8 @@ final readonly class FitFileParser implements ActivityFileParser
         $records = [];
         /** @var list<array<string, mixed>> $lapMessages */
         $lapMessages = [];
+        /** @var list<array<string, mixed>> $hrMessages */
+        $hrMessages = [];
         /** @var array<string, mixed>|null $session */
         $session = null;
         $productName = null;
@@ -80,7 +80,7 @@ final readonly class FitFileParser implements ActivityFileParser
 
         $messages = Json::decodeLazy(
             json: $output,
-            pointer: '/files/0/messages',
+            pointer: '/files/-/messages',
         );
 
         $hasMessages = false;
@@ -93,6 +93,9 @@ final readonly class FitFileParser implements ActivityFileParser
                     break;
                 case 'lap':
                     $lapMessages[] = $fields;
+                    break;
+                case 'hr':
+                    $hrMessages[] = $fields;
                     break;
                 case 'session':
                     $session ??= $fields;
@@ -139,7 +142,10 @@ final readonly class FitFileParser implements ActivityFileParser
         }
 
         $streamMap = $this->buildStreams(
-            records: $records,
+            records: $this->mergeStrapHeartRate(
+                records: $this->mergeRecordsByTimestamp($records),
+                strapHrSamples: $this->expandStrapHeartRateSamples($hrMessages),
+            ),
             startTimestamp: $startTimestamp
         );
         $activityId = $this->activityIdFactory->random();
@@ -159,23 +165,29 @@ final readonly class FitFileParser implements ActivityFileParser
             name: ActivityName::from($startDateTime, $sportType),
             description: null,
             distance: Kilometer::from(round((is_numeric($session['total_distance'] ?? null) ? (float) $session['total_distance'] : 0.0) / 1000, 3)),
-            elevation: Meter::from(round(is_numeric($session['total_ascent'] ?? null) ? (float) $session['total_ascent'] : 0.0)),
+            elevation: Meter::from(round(is_numeric($session['total_ascent'] ?? null) ? (float) $session['total_ascent'] : StreamMath::elevationGain($streamMap[StreamType::ALTITUDE->value]))),
             startingCoordinate: $this->resolveStartingCoordinate($session, $streamMap),
             calories: is_numeric($session['total_calories'] ?? null) ? (int) round((float) $session['total_calories']) : null,
             kilojoules: null !== $work ? (int) round($work / 1000) : null,
-            averagePower: is_numeric($session['avg_power'] ?? null) ? (int) round((float) $session['avg_power']) : null,
-            maxPower: is_numeric($session['max_power'] ?? null) ? (int) round((float) $session['max_power']) : null,
-            averageSpeed: MetersPerSecond::fromOptional(is_numeric($session['enhanced_avg_speed'] ?? $session['avg_speed'] ?? null) ? (float) ($session['enhanced_avg_speed'] ?? $session['avg_speed'] ?? null) : null)->toKmPerHour(),
-            maxSpeed: MetersPerSecond::fromOptional(is_numeric($session['enhanced_max_speed'] ?? $session['max_speed'] ?? null) ? (float) ($session['enhanced_max_speed'] ?? $session['max_speed'] ?? null) : null)->toKmPerHour(),
-            averageHeartRate: is_numeric($session['avg_heart_rate'] ?? null) ? (int) round((float) $session['avg_heart_rate']) : null,
-            maxHeartRate: is_numeric($session['max_heart_rate'] ?? null) ? (int) round((float) $session['max_heart_rate']) : null,
-            averageCadence: is_numeric($session['avg_cadence'] ?? null) ? (int) round((float) $session['avg_cadence']) : null,
+            averagePower: $this->resolveAveragePower(
+                session: $session,
+                wattsStream: $streamMap[StreamType::WATTS->value]
+            ),
+            maxPower: is_numeric($session['max_power'] ?? null) ? (int) round((float) $session['max_power']) : Math::max($streamMap[StreamType::WATTS->value]),
+            averageSpeed: $this->resolveAverageSpeed(
+                session: $session,
+                velocityStream: $streamMap[StreamType::VELOCITY->value]
+            )->toKmPerHour(),
+            maxSpeed: MetersPerSecond::fromOptional(is_numeric($session['enhanced_max_speed'] ?? $session['max_speed'] ?? null) ? (float) ($session['enhanced_max_speed'] ?? $session['max_speed'] ?? null) : Math::maxFloat($streamMap[StreamType::VELOCITY->value]))->toKmPerHour(),
+            averageHeartRate: is_numeric($session['avg_heart_rate'] ?? null) ? (int) round((float) $session['avg_heart_rate']) : Math::average($streamMap[StreamType::HEART_RATE->value]),
+            maxHeartRate: is_numeric($session['max_heart_rate'] ?? null) ? (int) round((float) $session['max_heart_rate']) : Math::max($streamMap[StreamType::HEART_RATE->value]),
+            averageCadence: is_numeric($session['avg_cadence'] ?? null) ? (int) round((float) $session['avg_cadence']) : Math::average($streamMap[StreamType::CADENCE->value]),
             movingTimeInSeconds: is_numeric($session['total_timer_time'] ?? null) ? (int) round((float) $session['total_timer_time']) : 0,
             elapsedTimeInSeconds: is_numeric($session['total_elapsed_time'] ?? null) ? (int) round((float) $session['total_elapsed_time']) : 0,
             deviceName: $deviceName,
             totalImageCount: 0,
             localImagePaths: [],
-            polyline: $this->encodePolyline($streamMap),
+            polyline: StreamMath::encodePolyline($streamMap),
             routeGeography: RouteGeography::create([]),
             weather: null,
             gearId: null,
@@ -185,35 +197,9 @@ final readonly class FitFileParser implements ActivityFileParser
 
         return ParsedActivityFile::create(
             activity: $activity,
-            streams: $this->buildActivityStreams($streamMap, $activityId),
+            streams: $this->activityStreamsMapper->fromStreamMap($streamMap, $activityId),
             laps: $this->buildActivityLaps($lapMessages, $activityId),
         );
-    }
-
-    /**
-     * @param array<string, list<mixed>> $streamMap
-     */
-    private function buildActivityStreams(array $streamMap, ActivityId $activityId): ActivityStreams
-    {
-        $createdOn = $this->clock->getCurrentDateTimeImmutable();
-
-        $streams = ActivityStreams::empty();
-        foreach ($streamMap as $type => $values) {
-            if (!$streamType = StreamType::tryFrom($type)) {
-                continue;
-            }
-            if ([] === array_filter($values, static fn (mixed $value): bool => null !== $value)) {
-                continue;
-            }
-            $streams->add(ActivityStream::create(
-                activityId: $activityId,
-                streamType: $streamType,
-                streamData: $values,
-                createdOn: $createdOn,
-            ));
-        }
-
-        return $streams;
     }
 
     /**
@@ -222,9 +208,21 @@ final readonly class FitFileParser implements ActivityFileParser
     private function buildActivityLaps(array $lapMessages, ActivityId $activityId): ActivityLaps
     {
         $averageSpeeds = array_map(
-            static fn (array $lap): float => is_numeric($lap['enhanced_avg_speed'] ?? $lap['avg_speed'] ?? null)
-                ? (float) ($lap['enhanced_avg_speed'] ?? $lap['avg_speed'] ?? null)
-                : 0.0,
+            static function (array $lap): float {
+                if (is_numeric($lap['enhanced_avg_speed'] ?? $lap['avg_speed'] ?? null)) {
+                    return (float) ($lap['enhanced_avg_speed'] ?? $lap['avg_speed']);
+                }
+
+                // Laps without a speed summary (e.g. Huawei Health exports) still
+                // carry distance and timer time; derive the average from those.
+                $totalDistance = is_numeric($lap['total_distance'] ?? null) ? (float) $lap['total_distance'] : null;
+                $totalTimerTime = is_numeric($lap['total_timer_time'] ?? null) ? (float) $lap['total_timer_time'] : null;
+                if (null !== $totalDistance && null !== $totalTimerTime && $totalTimerTime > 0.0) {
+                    return $totalDistance / $totalTimerTime;
+                }
+
+                return 0.0;
+            },
             $lapMessages
         );
         $minAverageSpeed = MetersPerSecond::from([] !== $averageSpeeds ? min($averageSpeeds) : 0.0);
@@ -253,6 +251,173 @@ final readonly class FitFileParser implements ActivityFileParser
     }
 
     /**
+     * Some devices (e.g. Bosch eBike head units) split a single point in time
+     * across several "record" messages, each carrying only a subset of fields
+     * (one with speed/power, another with only heart rate, ...). Collapse
+     * consecutive records that share a timestamp into one logical record.
+     *
+     * @param list<array<string, mixed>> $records
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function mergeRecordsByTimestamp(array $records): array
+    {
+        $merged = [];
+        $previousTimestamp = null;
+
+        foreach ($records as $record) {
+            $timestamp = is_numeric($record['timestamp'] ?? null) ? (int) round((float) $record['timestamp']) : null;
+            if ([] === $merged || null === $timestamp || $timestamp !== $previousTimestamp) {
+                $merged[] = $record;
+                $previousTimestamp = $timestamp;
+                continue;
+            }
+
+            $target = array_key_last($merged);
+            foreach ($record as $field => $value) {
+                if (null !== $value) {
+                    $merged[$target][$field] = $value;
+                }
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Chest straps cannot broadcast heart rate through water. During swims the
+     * strap stores its samples and the watch downloads them afterwards into
+     * "hr" messages, while the "record" messages only carry the (far less
+     * accurate) wrist reading. Each hr message batches filtered_bpm samples
+     * paired with event_timestamp values.
+     *
+     * @param list<array<string, mixed>> $hrMessages
+     *
+     * @return list<array{float, int}> chronological [timestamp in seconds since the FIT epoch, bpm] pairs
+     */
+    private function expandStrapHeartRateSamples(array $hrMessages): array
+    {
+        $anchorTimestamp = null;
+        $anchorEventTimestamp = null;
+        /** @var list<array{float, int}> $samples */
+        $samples = [];
+
+        foreach ($hrMessages as $hrMessage) {
+            $eventTimestamps = array_values(is_array($hrMessage['event_timestamp'] ?? null) ? $hrMessage['event_timestamp'] : [$hrMessage['event_timestamp'] ?? null]);
+            $bpms = array_values(is_array($hrMessage['filtered_bpm'] ?? null) ? $hrMessage['filtered_bpm'] : [$hrMessage['filtered_bpm'] ?? null]);
+
+            if (is_numeric($hrMessage['timestamp'] ?? null) && 1 === count($eventTimestamps) && is_numeric($eventTimestamps[0] ?? null)) {
+                $anchorTimestamp = (float) $hrMessage['timestamp'] + (is_numeric($hrMessage['fractional_timestamp'] ?? null) ? (float) $hrMessage['fractional_timestamp'] : 0.0);
+                $anchorEventTimestamp = (float) $eventTimestamps[0];
+            }
+            if (null === $anchorTimestamp) {
+                continue;
+            }
+            if (null === $anchorEventTimestamp) {
+                continue;
+            }
+            if (count($eventTimestamps) !== count($bpms)) {
+                continue;
+            }
+
+            foreach ($eventTimestamps as $index => $eventTimestamp) {
+                $bpm = $bpms[$index];
+                if (!is_numeric($eventTimestamp)) {
+                    continue;
+                }
+                if (!is_numeric($bpm)) {
+                    continue;
+                }
+                $bpm = (int) round((float) $bpm);
+                if ($bpm <= 0) {
+                    // 0xFF is the FIT "invalid" sentinel for uint8 fields.
+                    continue;
+                }
+                if ($bpm >= 255) {
+                    // 0xFF is the FIT "invalid" sentinel for uint8 fields.
+                    continue;
+                }
+                $eventTimestamp = (float) $eventTimestamp;
+                if ($eventTimestamp < $anchorEventTimestamp) {
+                    // The 32 bit event_timestamp counter has a 1/1024s resolution, so it wraps every 2^32/1024 seconds.
+                    $eventTimestamp += 4194304.0;
+                }
+
+                $timestamp = $anchorTimestamp + ($eventTimestamp - $anchorEventTimestamp);
+
+                // Carry the previous sample forward across gaps in 250ms increments, capped at 5s.
+                if ([] !== $samples) {
+                    [$previousTimestamp, $previousBpm] = array_last($samples);
+                    $gap = $timestamp - $previousTimestamp;
+                    for ($step = 1; $gap > 0.25 && $step <= 20; ++$step) {
+                        $samples[] = [$previousTimestamp + $step * 0.25, $previousBpm];
+                        $gap -= 0.25;
+                    }
+                }
+
+                $samples[] = [$timestamp, $bpm];
+            }
+        }
+
+        return $samples;
+    }
+
+    /**
+     * Overwrite the (wrist based) heart_rate of each record with the average
+     * of the strap samples taken between the previous record and this one.
+     * Records without nearby strap samples keep their wrist reading. Mirrors
+     * Garmin's reference implementation (HrMesgUtils.mergeHeartRates in the
+     * FIT SDK).
+     *
+     * @param list<array<string, mixed>> $records
+     * @param list<array{float, int}>    $strapHrSamples
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function mergeStrapHeartRate(array $records, array $strapHrSamples): array
+    {
+        if ([] === $strapHrSamples) {
+            return $records;
+        }
+
+        $sampleIndex = 0;
+        $countSamples = count($strapHrSamples);
+        $rangeStart = null;
+
+        foreach ($records as $key => $record) {
+            if (!is_numeric($record['timestamp'] ?? null)) {
+                continue;
+            }
+            $rangeEnd = (float) $record['timestamp'];
+            if (null === $rangeStart || $rangeStart >= $rangeEnd) {
+                $rangeStart = $rangeEnd - 1.0;
+                $sampleIndex = max(0, $sampleIndex - 1);
+            }
+
+            $sum = 0;
+            $count = 0;
+            while ($sampleIndex < $countSamples) {
+                [$timestamp, $bpm] = $strapHrSamples[$sampleIndex];
+                if ($timestamp > $rangeEnd) {
+                    break;
+                }
+                if ($timestamp > $rangeStart) {
+                    $sum += $bpm;
+                    ++$count;
+                }
+                ++$sampleIndex;
+            }
+
+            if ($count > 0) {
+                $records[$key]['heart_rate'] = (int) round($sum / $count);
+            }
+            $rangeStart = $rangeEnd;
+        }
+
+        return $records;
+    }
+
+    /**
      * @param list<array<string, mixed>> $records
      *
      * @return array<string, list<mixed>>
@@ -278,7 +443,7 @@ final readonly class FitFileParser implements ActivityFileParser
 
             $latitude = is_numeric($record['position_lat'] ?? null) ? (float) $record['position_lat'] : null;
             $longitude = is_numeric($record['position_long'] ?? null) ? (float) $record['position_long'] : null;
-            $streams[StreamType::LAT_LNG->value][] = (null !== $latitude && null !== $longitude)
+            $streams[StreamType::LAT_LNG->value][] = (null !== $latitude && null !== $longitude && (0.0 !== $latitude || 0.0 !== $longitude))
                 ? [GeoMath::semicirclesToDegrees($latitude), GeoMath::semicirclesToDegrees($longitude)]
                 : null;
 
@@ -291,6 +456,51 @@ final readonly class FitFileParser implements ActivityFileParser
         }
 
         return $streams;
+    }
+
+    /**
+     * Some exporters (e.g. Huawei Health via Health Sync) omit the session speed
+     * summaries entirely; fall back to the FIT-spec definition of avg_speed
+     * (total distance over timer time), then to the velocity stream.
+     *
+     * @param array<string, mixed> $session
+     * @param list<mixed>          $velocityStream
+     */
+    private function resolveAverageSpeed(array $session, array $velocityStream): MetersPerSecond
+    {
+        if (is_numeric($session['enhanced_avg_speed'] ?? $session['avg_speed'] ?? null)) {
+            return MetersPerSecond::from((float) ($session['enhanced_avg_speed'] ?? $session['avg_speed']));
+        }
+
+        $totalDistance = is_numeric($session['total_distance'] ?? null) ? (float) $session['total_distance'] : null;
+        $totalTimerTime = is_numeric($session['total_timer_time'] ?? null) ? (float) $session['total_timer_time'] : null;
+        if (null !== $totalDistance && null !== $totalTimerTime && $totalTimerTime > 0.0) {
+            return MetersPerSecond::from($totalDistance / $totalTimerTime);
+        }
+
+        return MetersPerSecond::fromOptional(Math::averageFloat($velocityStream));
+    }
+
+    /**
+     * @param array<string, mixed> $session
+     * @param list<mixed>          $wattsStream
+     */
+    private function resolveAveragePower(array $session, array $wattsStream): ?int
+    {
+        $sessionAverage = is_numeric($session['avg_power'] ?? null) ? (int) round((float) $session['avg_power']) : null;
+        $streamAverage = Math::average($wattsStream);
+
+        if (null === $streamAverage || null === $sessionAverage) {
+            return $sessionAverage ?? $streamAverage;
+        }
+
+        // Some head units (e.g. Bosch) exclude zero-power samples from the session
+        // average. When it deviates too far from the stream average, trust the stream.
+        if (abs($sessionAverage - $streamAverage) / max($streamAverage, 1) > self::MAX_AVG_POWER_DEVIANCE) {
+            return $streamAverage;
+        }
+
+        return $sessionAverage;
     }
 
     /**
@@ -310,16 +520,7 @@ final readonly class FitFileParser implements ActivityFileParser
             );
         }
 
-        foreach ($streams[StreamType::LAT_LNG->value] ?? [] as $point) {
-            if (is_array($point)) {
-                return Coordinate::createFromLatAndLng(
-                    latitude: Latitude::fromString((string) $point[0]),
-                    longitude: Longitude::fromString((string) $point[1]),
-                );
-            }
-        }
-
-        return null;
+        return StreamMath::firstCoordinate($streams);
     }
 
     /**
@@ -338,23 +539,5 @@ final readonly class FitFileParser implements ActivityFileParser
         }
 
         return $map;
-    }
-
-    /**
-     * @param array<string, list<mixed>> $streamMap
-     */
-    private function encodePolyline(array $streamMap): ?string
-    {
-        /** @var array<int, array{float, float}> $coordinates */
-        $coordinates = array_values(array_filter(
-            $streamMap[StreamType::LAT_LNG->value] ?? [],
-            is_array(...),
-        ));
-
-        if ([] === $coordinates) {
-            return null;
-        }
-
-        return (string) Polyline::fromCoordinates($coordinates)->simplify()->encode();
     }
 }
