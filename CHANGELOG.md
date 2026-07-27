@@ -1,3 +1,11 @@
+# [v5.7.0](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.6.1...v5.7.0)
+
+## Features
+* ISSUE #75: Ported file-parser fixes/improvements from upstream (multi-track TCX support, GPX recording-gap handling, better sport-type mapping for GPX/TCX, FIT strap heart-rate merging for pool swims, average heart rate/power derivation fallback when missing from the file's session summary, collapsing duplicate-timestamp FIT records, and speed/distance derivation for exports without a speed summary)
+
+> [!NOTE]
+> This entry summarizes the release at a high level; see the linked compare view for the full commit history.
+
 # [v5.6.1](https://github.com/SalvaChiLlo/statistics-for-endurain/compare/v5.6.0...v5.6.1)
 
 ## Bug fixes
