@@ -136,20 +136,25 @@ final class FitSportType
             // Garmin "floor climbing" tracks flights of stairs climbed.
             self::SPORT_FLOOR_CLIMBING => SportType::STAIR_STEPPER,
             self::SPORT_HIIT => SportType::HIIT,
-            self::SPORT_RACKET => match ($subSport) {
-                self::SUB_SPORT_PICKLEBALL => SportType::PICKLE_BALL,
-                self::SUB_SPORT_PADEL => SportType::PADEL,
-                self::SUB_SPORT_SQUASH => SportType::SQUASH,
-                self::SUB_SPORT_BADMINTON => SportType::BADMINTON,
-                self::SUB_SPORT_RACQUETBALL => SportType::RACQUET_BALL,
-                self::SUB_SPORT_TABLE_TENNIS => SportType::TABLE_TENNIS,
-                default => SportType::WORKOUT,
-            },
+            self::SPORT_RACKET => self::resolveRacket($subSport),
             self::SPORT_WHEELCHAIR_PUSH_WALK, self::SPORT_WHEELCHAIR_PUSH_RUN => SportType::WHEELCHAIR,
             self::SPORT_CRICKET => SportType::CRICKET,
             self::SPORT_VOLLEYBALL => SportType::VOLLEYBALL,
             self::SPORT_DANCE => SportType::DANCE,
             default => null,
+        };
+    }
+
+    private static function resolveRacket(?int $subSport): SportType
+    {
+        return match ($subSport) {
+            self::SUB_SPORT_PICKLEBALL => SportType::PICKLE_BALL,
+            self::SUB_SPORT_PADEL => SportType::PADEL,
+            self::SUB_SPORT_SQUASH => SportType::SQUASH,
+            self::SUB_SPORT_BADMINTON => SportType::BADMINTON,
+            self::SUB_SPORT_RACQUETBALL => SportType::RACQUET_BALL,
+            self::SUB_SPORT_TABLE_TENNIS => SportType::TABLE_TENNIS,
+            default => SportType::WORKOUT,
         };
     }
 }
