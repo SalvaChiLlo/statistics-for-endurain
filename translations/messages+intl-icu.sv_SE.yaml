@@ -37,6 +37,7 @@ Average: Average
 Badges: Badges
 Badminton: Badminton
 Bananas: Bananas
+'Based on Dreeve': 'Based on Dreeve'
 Basketball: Basketball
 Best: Bästa
 'Best efforts': 'Bästa Insatser'
@@ -75,6 +76,7 @@ Cycling: Cykling
 Dance: Dance
 'Dark mode': 'Dark mode'
 Dashboard: Översikt
+'Data provided by Endurain': 'Data provided by Endurain'
 Date: Datum
 Day: Day
 'Days needed': 'Dagar saknade'
@@ -262,10 +264,12 @@ Pilates: Pilates
 'Pizza slices': 'Pizza slices'
 'Polarised training (last 30 days)': 'Polariserad träning (senaste 30 dagarna)'
 Power: Effekt
+'Powered by': 'Powered by'
 'Powered by an estimated {caloriesBurned} calories, or roughly {numberOfPizzaSlices} slices of pizza 🍕.': 'Powered by an estimated {caloriesBurned} calories, or roughly {numberOfPizzaSlices} slices of pizza 🍕.'
 'Prev year': 'Tidigare år'
 Previous: Previous
 'Purchase price': 'Purchase price'
+"Purely informational: upstream Dreeve's latest release. This fork has its own independent release line.": "Purely informational: upstream Dreeve's latest release. This fork has its own independent release line."
 Race: Tävling
 'Racing Score': Tävlingspoäng
 'Racquet & Paddle Sports': 'Rack & Paddel Sporter'
@@ -456,6 +460,7 @@ Tue: Tis
 Tue.: Tue.
 Unspecified: Ospecificerad
 'Updated on': Uppdaterades
+'Upstream (Dreeve)': 'Upstream (Dreeve)'
 'User badge': Användarmärke
 'Velo Mobiles': Velomobil
 'Very high': 'Väldigt hög'

@@ -6,9 +6,12 @@ namespace App\Application;
 
 final readonly class AppVersion
 {
-    private const int MAJOR = 4;
-    private const int MINOR = 8;
-    private const int PATCH = 8;
+    // NOTE: This is not derived automatically from git tags or CHANGELOG.md.
+    // Bump this constant manually in the same PR that adds a CHANGELOG.md
+    // entry for a new release of this fork.
+    private const int MAJOR = 5;
+    private const int MINOR = 7;
+    private const int PATCH = 0;
 
     public static function getSemanticVersion(): string
     {

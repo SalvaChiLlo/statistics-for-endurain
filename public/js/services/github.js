@@ -14,15 +14,49 @@ const compareVersions = (a, b) => {
     return 0;
 }
 
-const showLatestVersion = (latestVersion) => {
-    const $latestVersionEl = document.querySelector('[data-latest-version]');
-    const $link = $latestVersionEl.querySelector('a');
+const fetchCachedLatestRelease = async (repo, cacheKey, cacheTtl) => {
+    const now = Date.now();
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+
+    if (cached && now - cached.timestamp < cacheTtl) {
+        return cached.latestVersion;
+    }
+
+    const releaseResponse = await fetch(
+        `https://api.github.com/repos/${repo}/releases/latest`,
+        { headers: { 'Accept': 'application/vnd.github+json' } }
+    );
+    if (!releaseResponse.ok) throw new Error('Failed to fetch latest release');
+
+    const latestVersion = (await releaseResponse.json()).name;
+    localStorage.setItem(cacheKey, JSON.stringify({ latestVersion, timestamp: now }));
+
+    return latestVersion;
+};
+
+const showLatestVersion = (selector, latestVersion) => {
+    const $el = document.querySelector(selector);
+    if (!$el) return;
+
+    const $link = $el.querySelector('a');
     if ($link) {
         $link.href = $link.href.replace('[LATEST_VERSION]', latestVersion);
         $link.textContent = $link.textContent.replace('[LATEST_VERSION]', latestVersion);
     }
-    $latestVersionEl.classList.remove('hidden');
+    $el.classList.remove('hidden');
 };
+
+const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
+
+// This fork's own repo. Powers the "update available" indicator, which
+// compares the latest release of THIS fork against the version currently
+// running (AppVersion).
+const FORK_REPO = 'SalvaChiLlo/statistics-for-endurain';
+
+// Upstream codebase this fork is based on. Purely informational: it is
+// never compared against the running version and never triggers an
+// "update available" notice, since divergence from upstream is intentional.
+const UPSTREAM_REPO = 'dreeveapp/dreeve';
 
 export const updateGithubLatestRelease = async () => {
     const $latestVersionEl = document.querySelector('[data-latest-version]');
@@ -31,38 +65,17 @@ export const updateGithubLatestRelease = async () => {
     const currentVersion = $latestVersionEl.dataset.currentVersion;
     if (!currentVersion) return;
 
-    const CACHE_KEY = 'latestReleaseCache';
-    const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
-
-    const now = Date.now();
-    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-
-    // If cache exists and is recent, use it
-    if (cached && now - cached.timestamp < CACHE_TTL) {
-        if (compareVersions(currentVersion, cached.latestVersion) < 0) {
-            // Update available.
-            showLatestVersion(cached.latestVersion);
-        }
-        return;
-    }
-
     try {
-        const releaseResponse = await fetch(
-            'https://api.github.com/repos/dreeveapp/dreeve/releases/latest',
-            { headers: { 'Accept': 'application/vnd.github+json' } }
-        );
-        if (!releaseResponse.ok) throw new Error('Failed to fetch latest release');
+        const latestVersion = await fetchCachedLatestRelease(FORK_REPO, 'latestReleaseCache', CACHE_TTL);
 
-        const latestVersion = (await releaseResponse.json()).name;
-
-        if (currentVersion === latestVersion) {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ latestVersion, timestamp: now }));
+        if (compareVersions(currentVersion, latestVersion) >= 0) {
             return;
         }
 
-        // Verify Docker image workflow run success
+        // Verify Docker image workflow run success before nagging the user,
+        // so we don't advertise a release whose image isn't published yet.
         const workflowRunsResponse = await fetch(
-            `https://api.github.com/repos/dreeveapp/dreeve/actions/runs?event=push&status=completed&conclusion=success&exclude_pull_requests=true&branch=${latestVersion}`,
+            `https://api.github.com/repos/${FORK_REPO}/actions/runs?event=push&status=completed&conclusion=success&exclude_pull_requests=true&branch=${latestVersion}`,
             { headers: { 'Accept': 'application/vnd.github+json' } }
         );
         if (!workflowRunsResponse.ok) throw new Error('Failed to fetch workflow runs');
@@ -72,11 +85,25 @@ export const updateGithubLatestRelease = async () => {
             run => run.path === '.github/workflows/docker-image.yml'
         );
 
-        if(!dockerWorkflowRun) return;
+        if (!dockerWorkflowRun) return;
 
-        showLatestVersion(latestVersion);
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ latestVersion, timestamp: now }));
+        showLatestVersion('[data-latest-version]', latestVersion);
     } catch (err) {
         console.error('Error checking latest release:', err);
+    }
+}
+
+// Purely informational: shows upstream Dreeve's latest release next to this
+// fork's own version/update-check UI, without implying this fork is
+// "out of date" relative to it.
+export const updateUpstreamLatestRelease = async () => {
+    const $upstreamVersionEl = document.querySelector('[data-upstream-latest-version]');
+    if (!$upstreamVersionEl) return;
+
+    try {
+        const latestVersion = await fetchCachedLatestRelease(UPSTREAM_REPO, 'upstreamLatestReleaseCache', CACHE_TTL);
+        showLatestVersion('[data-upstream-latest-version]', latestVersion);
+    } catch (err) {
+        console.error('Error checking upstream latest release:', err);
     }
 }
