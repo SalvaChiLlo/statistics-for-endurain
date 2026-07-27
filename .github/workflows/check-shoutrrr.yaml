@@ -32,6 +32,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ensure label exists
+        if: steps.local.outputs.current != steps.upstream.outputs.latest
+        run: |
+          gh label create "$LABELS" --description "Technical debt to be addressed" --color "d4c5f9" --force
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LABELS: tech debt
+
       - name: Create issue
         if: steps.local.outputs.current != steps.upstream.outputs.latest
         run: |
